@@ -30,3 +30,4 @@ These instructions will get you a copy of the project up and running on your loc
 ### Installation
 
 1. Clone the repository:
+https://github.com/pravallikachejerla/expense-tracker.git
