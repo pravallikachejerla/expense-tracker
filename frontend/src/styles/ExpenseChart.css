@@ -1,0 +1,30 @@
+.chart-container {
+    background-color: #1e1e1e;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  
+  h2, h3 {
+    color: #bb86fc;
+    margin-bottom: 20px;
+  }
+  
+  .chart-wrapper {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+  }
+  
+  .chart {
+    width: 45%;
+    min-width: 300px;
+    margin-bottom: 20px;
+  }
+  
+  @media (max-width: 768px) {
+    .chart {
+      width: 100%;
+    }
+  }
+  

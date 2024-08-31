@@ -1,0 +1,44 @@
+.filter-container {
+    background-color: #1e1e1e;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  
+  .filter-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+  
+  .MuiFormControl-root {
+    min-width: 120px !important;
+    flex-grow: 1;
+  }
+  
+  .MuiInputBase-root {
+    color: #ffffff !important;
+  }
+  
+  .MuiOutlinedInput-notchedOutline {
+    border-color: #bb86fc !important;
+  }
+  
+  .MuiInputLabel-root {
+    color: #03dac6 !important;
+  }
+  
+  .MuiSelect-icon {
+    color: #03dac6 !important;
+  }
+  
+  .MuiMenuItem-root {
+    color: #ffffff !important;
+  }
+  
+  @media (max-width: 768px) {
+    .filter-form {
+      flex-direction: column;
+    }
+  }
+  
