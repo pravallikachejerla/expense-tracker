@@ -27,10 +27,23 @@ const MainApp = () => {
     maxAmount: ''
   });
   const [editingExpense, setEditingExpense] = useState(null);
+  const [exportMessage, setExportMessage] = useState('');
+
+  const fetchExpenses = useCallback(async () => {
+    try {
+      const response = await axios.get('http://localhost:5000/api/expenses');
+      setExpenses(response.data);
+    } catch (error) {
+      console.error('Error fetching expenses:', error);
+      if (error.response?.status === 401) {
+        logout();
+      }
+    }
+  }, [logout]);
 
   useEffect(() => {
     fetchExpenses();
-  }, []);
+  }, [fetchExpenses]);
 
   const filterExpenses = useCallback(() => {
     const filtered = expenses.filter(expense => {
@@ -61,18 +74,6 @@ const MainApp = () => {
     filterExpenses();
   }, [filterExpenses]);
 
-  const fetchExpenses = async () => {
-    try {
-      const response = await axios.get('http://localhost:5000/api/expenses');
-      setExpenses(response.data);
-    } catch (error) {
-      console.error('Error fetching expenses:', error);
-      if (error.response?.status === 401) {
-        logout();
-      }
-    }
-  };
-
   const handleExpenseAdded = (newExpense) => {
     setExpenses([newExpense, ...expenses]);
   };
@@ -95,6 +96,30 @@ const MainApp = () => {
     ));
   };
 
+  const handleExport = async () => {
+    try {
+      const response = await axios.get('http://localhost:5000/api/expenses/export', {
+        responseType: 'blob'
+      });
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'expenses.csv');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      setExportMessage('CSV exported successfully!');
+      setTimeout(() => setExportMessage(''), 3000);
+    } catch (error) {
+      console.error('Export error:', error);
+      setExportMessage('Failed to export CSV. No expenses found or server error.');
+      setTimeout(() => setExportMessage(''), 4000);
+    }
+  };
+
   return (
     <>
       <AppBar position="static" sx={{ mb: 4 }}>
@@ -102,6 +127,9 @@ const MainApp = () => {
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             Expense Tracker - {user?.username || 'User'}
           </Typography>
+          <Button color="inherit" onClick={handleExport} sx={{ mr: 2 }}>
+            Export CSV
+          </Button>
           <Button color="inherit" onClick={logout}>
             Logout
           </Button>
@@ -111,6 +139,11 @@ const MainApp = () => {
         <Typography variant="h2" align="center" gutterBottom>
           Expense Tracker
         </Typography>
+        {exportMessage && (
+          <Typography align="center" color={exportMessage.includes('success') ? 'success.main' : 'error'} sx={{ mb: 2 }}>
+            {exportMessage}
+          </Typography>
+        )}
         <Box my={4}>
           <AddExpenseForm onExpenseAdded={handleExpenseAdded} />
         </Box>

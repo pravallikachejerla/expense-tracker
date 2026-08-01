@@ -7,12 +7,27 @@ const BudgetManager = ({ expenses, onBudgetUpdate }) => {
   const [budgets, setBudgets] = useState([]);
   const [newBudget, setNewBudget] = useState({ category: '', amount: '' });
   const [message, setMessage] = useState('');
-
-  const categories = ['Food', 'Transport', 'Rent', 'Entertainment', 'Utilities', 'Shopping', 'Healthcare', 'Other'];
+  const [error, setError] = useState('');
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    fetchCategories();
     fetchBudgets();
   }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await axios.get('http://localhost:5000/api/expenses/categories');
+      setCategories(response.data);
+    } catch (err) {
+      console.error('Failed to fetch categories, using defaults');
+      setCategories([
+        'Food', 'Transportation', 'Housing', 'Utilities', 'Entertainment',
+        'Healthcare', 'Education', 'Shopping', 'Personal', 'Debt', 'Savings', 'Other'
+      ]);
+    }
+  };
 
   const fetchBudgets = async () => {
     try {
@@ -25,8 +40,12 @@ const BudgetManager = ({ expenses, onBudgetUpdate }) => {
 
   const handleSetBudget = async (e) => {
     e.preventDefault();
-    if (!newBudget.category || !newBudget.amount) return;
-
+    if (!newBudget.category || !newBudget.amount) {
+      setError('Category and amount are required');
+      return;
+    }
+    setLoading(true);
+    setError('');
     try {
       const response = await axios.post('http://localhost:5000/api/budgets', {
         category: newBudget.category,
@@ -39,7 +58,9 @@ const BudgetManager = ({ expenses, onBudgetUpdate }) => {
       setTimeout(() => setMessage(''), 3000);
     } catch (error) {
       console.error('Error setting budget:', error);
-      setMessage('Error updating budget');
+      setError(error.response?.data?.message || 'Error updating budget');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -51,6 +72,7 @@ const BudgetManager = ({ expenses, onBudgetUpdate }) => {
       setTimeout(() => setMessage(''), 2000);
     } catch (error) {
       console.error('Error deleting budget:', error);
+      setError('Error deleting budget');
     }
   };
 
@@ -68,9 +90,10 @@ const BudgetManager = ({ expenses, onBudgetUpdate }) => {
       <Typography variant="h5" gutterBottom>Budget Manager</Typography>
       
       {message && <Alert severity="success" sx={{ mb: 2 }}>{message}</Alert>}
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      <Box component="form" onSubmit={handleSetBudget} sx={{ display: 'flex', gap: 2, mb: 4 }}>
-        <FormControl sx={{ minWidth: 150 }}>
+      <Box component="form" onSubmit={handleSetBudget} sx={{ display: 'flex', gap: 2, mb: 4, alignItems: 'center' }}>
+        <FormControl sx={{ minWidth: 180 }}>
           <InputLabel>Category</InputLabel>
           <Select
             value={newBudget.category}
@@ -88,8 +111,11 @@ const BudgetManager = ({ expenses, onBudgetUpdate }) => {
           value={newBudget.amount}
           onChange={(e) => setNewBudget({ ...newBudget, amount: e.target.value })}
           sx={{ width: 150 }}
+          InputProps={{ inputProps: { min: 0, step: 0.01 } }}
         />
-        <Button type="submit" variant="contained">Set Budget</Button>
+        <Button type="submit" variant="contained" disabled={loading}>
+          {loading ? 'Setting...' : 'Set Budget'}
+        </Button>
       </Box>
 
       <Typography variant="h6" gutterBottom>Current Budgets</Typography>

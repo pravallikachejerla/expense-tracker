@@ -3,6 +3,11 @@ const router = express.Router();
 const Budget = require('../models/Budget');
 const auth = require('../middleware/auth');
 
+const categories = [
+  'Food', 'Transportation', 'Housing', 'Utilities', 'Entertainment',
+  'Healthcare', 'Education', 'Shopping', 'Personal', 'Debt', 'Savings', 'Other'
+];
+
 // Get all budgets for the authenticated user
 router.get('/', auth, async (req, res) => {
   try {
@@ -13,15 +18,24 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
+// Get categories (for frontend consistency)
+router.get('/categories', auth, (req, res) => {
+  res.json(categories);
+});
+
 // Set or update budget for a category (upsert style for simplicity)
 router.post('/', auth, async (req, res) => {
   const { category, amount, period } = req.body;
-
+  
+  if (!categories.includes(category)) {
+    return res.status(400).json({ message: 'Invalid category. Must be one of the standard categories.' });
+  }
+  
   try {
     let budget = await Budget.findOne({ user: req.user.id, category, period: period || 'monthly' });
     
     if (budget) {
-      budget.amount = amount;
+      budget.amount = parseFloat(amount);
       if (period) budget.period = period;
       budget.startDate = Date.now();
       const updatedBudget = await budget.save();
@@ -29,7 +43,7 @@ router.post('/', auth, async (req, res) => {
     } else {
       budget = new Budget({
         category,
-        amount,
+        amount: parseFloat(amount),
         period: period || 'monthly',
         user: req.user.id
       });
