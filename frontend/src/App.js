@@ -11,6 +11,7 @@ import ExpenseSummary from './components/ExpenseSummary';
 import ExpenseFilter from './components/ExpenseFilter';
 import EditExpenseModal from './components/EditExpenseModal';
 import ExpenseChart from './components/ExpenseChart';
+import BudgetManager from './components/BudgetManager';
 import './App.css';
 
 const MainApp = () => {
@@ -128,6 +129,9 @@ const MainApp = () => {
         </Box>
         <Box my={4}>
           <ExpenseChart expenses={filteredExpenses} />
+        </Box>
+        <Box my={4}>
+          <BudgetManager expenses={filteredExpenses} />
         </Box>
         {editingExpense && (
           <EditExpenseModal

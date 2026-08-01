@@ -1,6 +1,6 @@
 # Expense Tracker
 
-Expense Tracker is a web application that helps users manage and visualize their personal expenses. Built with React, Material-UI, Express, and MongoDB. Now includes **user authentication** and per-user data isolation for privacy and multi-user support.
+Expense Tracker is a web application that helps users manage and visualize their personal expenses. Built with React, Material-UI, Express, and MongoDB. Now includes **user authentication**, per-user data isolation, **and budget management** for proactive spending control.
 
 ## Features
 
@@ -9,6 +9,7 @@ Expense Tracker is a web application that helps users manage and visualize their
 - Filter expenses by category, date, amount
 - View expense summary statistics
 - Visualize expenses with interactive charts (Recharts/Chart.js)
+- **Set monthly budgets per category with real-time progress bars and over-budget alerts**
 - Responsive design
 - Protected routes and API endpoints
 
@@ -70,21 +71,22 @@ Expense Tracker is a web application that helps users manage and visualize their
    npm start
    ```
 
-4. Open http://localhost:3000. Register a new account or login. All expenses are now private to your user.
+4. Open http://localhost:3000. Register a new account or login. All expenses are now private to your user. Use the new **Budget Manager** section to set category budgets and monitor progress (visual alerts appear when over budget).
 
 ## API Endpoints
 
 - `POST /api/auth/register` — Create account
 - `POST /api/auth/login` — Login and receive JWT
 - `GET/POST/PATCH/DELETE /api/expenses` — Protected expense CRUD (user-scoped)
+- `GET/POST/DELETE /api/budgets` — Protected budget CRUD (user-scoped, supports monthly per-category budgets)
 
-All expense routes require `Authorization: Bearer <token>` header.
+All routes require `Authorization: Bearer <token>` header.
 
 ## Project Structure
 
-- `backend/`: Express server, Mongoose models (User, Expense), routes (auth, expenses), middleware
-- `frontend/`: React app with AuthContext, protected routes, MUI components, charts
+- `backend/`: Express server, Mongoose models (User, Expense, Budget), routes (auth, expenses, budgets), middleware
+- `frontend/`: React app with AuthContext, protected routes, MUI components (including new BudgetManager with progress bars), charts
 
-This feature was implemented by updating the existing codebase (models, routes, server, frontend components, context, App, config) while preserving original coding standards, error handling, and UI/UX.
+This feature (Budget Management) was implemented by modifying the existing codebase (new Budget model + routes, updated server.js, new BudgetManager component, updated App.js and README) while preserving original coding standards, error handling, MUI/React patterns, user-scoping, and UI/UX.
 
 For development, use separate terminals for backend/frontend.
