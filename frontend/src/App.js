@@ -1,15 +1,20 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import axios from 'axios';
-import { Container, Typography, Box } from '@mui/material';
+import { Container, Typography, Box, AppBar, Toolbar, Button } from '@mui/material';
+import { useAuth, AuthProvider } from './context/AuthContext';
+import Login from './components/Login';
+import Register from './components/Register';
 import AddExpenseForm from './components/AddExpenseModal';
 import ExpenseList from './components/ExpenseList';
 import ExpenseSummary from './components/ExpenseSummary';
 import ExpenseFilter from './components/ExpenseFilter';
 import EditExpenseModal from './components/EditExpenseModal';
 import ExpenseChart from './components/ExpenseChart';
-import './App.css'; 
+import './App.css';
 
-function App() {
+const MainApp = () => {
+  const { logout, user } = useAuth();
   const [expenses, setExpenses] = useState([]);
   const [filteredExpenses, setFilteredExpenses] = useState([]);
   const [filter, setFilter] = useState({
@@ -61,6 +66,9 @@ function App() {
       setExpenses(response.data);
     } catch (error) {
       console.error('Error fetching expenses:', error);
+      if (error.response?.status === 401) {
+        logout();
+      }
     }
   };
 
@@ -74,6 +82,9 @@ function App() {
       setExpenses(expenses.filter(expense => expense._id !== id));
     } catch (error) {
       console.error('Error deleting expense:', error);
+      if (error.response?.status === 401) {
+        logout();
+      }
     }
   };
 
@@ -82,41 +93,76 @@ function App() {
       expense._id === updatedExpense._id ? updatedExpense : expense
     ));
   };
-  
 
   return (
-    <Container maxWidth="lg">
-      <Typography variant="h2" align="center" gutterBottom>
-        Expense Tracker
-      </Typography>
-      <Box my={4}>
-        <AddExpenseForm onExpenseAdded={handleExpenseAdded} />
-      </Box>
-      <Box my={4}>
-        <ExpenseFilter onFilterChange={setFilter} filter={filter} />
-      </Box>
-      <Box my={4}>
-        <ExpenseList 
-          expenses={filteredExpenses} 
-          onDelete={handleExpenseDeleted}
-          onEdit={setEditingExpense}
-        />
-      </Box>
-      <Box my={4}>
-        <ExpenseSummary expenses={filteredExpenses} />
-      </Box>
-      <Box my={4}>
-        <ExpenseChart expenses={filteredExpenses} />
-      </Box>
-      {editingExpense && (
-        <EditExpenseModal
-          expense={editingExpense}
-          onClose={() => setEditingExpense(null)}
-          onExpenseUpdated={handleExpenseUpdated}
-        />
-      )}
-    </Container>
+    <>
+      <AppBar position="static" sx={{ mb: 4 }}>
+        <Toolbar>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            Expense Tracker - {user?.username || 'User'}
+          </Typography>
+          <Button color="inherit" onClick={logout}>
+            Logout
+          </Button>
+        </Toolbar>
+      </AppBar>
+      <Container maxWidth="lg">
+        <Typography variant="h2" align="center" gutterBottom>
+          Expense Tracker
+        </Typography>
+        <Box my={4}>
+          <AddExpenseForm onExpenseAdded={handleExpenseAdded} />
+        </Box>
+        <Box my={4}>
+          <ExpenseFilter onFilterChange={setFilter} filter={filter} />
+        </Box>
+        <Box my={4}>
+          <ExpenseList 
+            expenses={filteredExpenses} 
+            onDelete={handleExpenseDeleted}
+            onEdit={setEditingExpense}
+          />
+        </Box>
+        <Box my={4}>
+          <ExpenseSummary expenses={filteredExpenses} />
+        </Box>
+        <Box my={4}>
+          <ExpenseChart expenses={filteredExpenses} />
+        </Box>
+        {editingExpense && (
+          <EditExpenseModal
+            expense={editingExpense}
+            onClose={() => setEditingExpense(null)}
+            onExpenseUpdated={handleExpenseUpdated}
+          />
+        )}
+      </Container>
+    </>
+  );
+};
+
+function App() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <Typography align="center" sx={{ mt: 8 }}>Loading...</Typography>;
+  }
+
+  return (
+    <Router>
+      <Routes>
+        <Route path="/login" element={!user ? <Login onSwitchToRegister={() => window.location.href = '/register'} /> : <Navigate to="/" />} />
+        <Route path="/register" element={!user ? <Register onSwitchToLogin={() => window.location.href = '/login'} /> : <Navigate to="/" />} />
+        <Route path="/" element={user ? <MainApp /> : <Navigate to="/login" />} />
+      </Routes>
+    </Router>
   );
 }
 
-export default App;
+const AppWithProvider = () => (
+  <AuthProvider>
+    <App />
+  </AuthProvider>
+);
+
+export default AppWithProvider;

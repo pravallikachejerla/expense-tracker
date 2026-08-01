@@ -16,6 +16,16 @@ const ExpenseSchema = new mongoose.Schema({
   description: {
     type: String,
     required: true
+  },
+  paymentMethod: {
+    type: String,
+    enum: ['Cash', 'Credit Card', 'Debit Card', 'Bank Transfer', 'Other'],
+    default: 'Other'
+  },
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
   }
 });
 

@@ -1,33 +1,90 @@
 # Expense Tracker
 
-Expense Tracker is a web application that helps users manage and visualize their personal expenses. Built with React and Material-UI, it offers an intuitive interface for adding, editing, and analyzing expenses.
+Expense Tracker is a web application that helps users manage and visualize their personal expenses. Built with React, Material-UI, Express, and MongoDB. Now includes **user authentication** and per-user data isolation for privacy and multi-user support.
 
 ## Features
 
-- Add new expenses with details like amount, category, and date
-- Edit or delete existing expenses
-- Filter expenses by category
+- User registration and login (JWT-based authentication)
+- Add, edit, delete expenses (now scoped to logged-in user)
+- Filter expenses by category, date, amount
 - View expense summary statistics
-- Visualize expenses with interactive charts
-- Responsive design for desktop and mobile use
+- Visualize expenses with interactive charts (Recharts/Chart.js)
+- Responsive design
+- Protected routes and API endpoints
 
 ## Technologies Used
 
-- React.js
-- Material-UI
-- Chart.js (or Recharts, depending on which you used)
+- **Backend**: Node.js, Express, Mongoose, JWT, bcryptjs
+- **Frontend**: React.js, Material-UI, Axios, React Router, Recharts
+- **Database**: MongoDB
 - CSS3 with custom styling
 
 ## Getting Started
 
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
-
 ### Prerequisites
 
-- Node.js (v14.0.0 or later recommended)
-- npm (usually comes with Node.js)
+- Node.js (v14+)
+- npm
+- MongoDB (local or Atlas; update `backend/.env`)
 
 ### Installation
 
 1. Clone the repository:
-https://github.com/pravallikachejerla/expense-tracker.git
+   ```
+   git clone https://github.com/pravallikachejerla/expense-tracker.git
+   cd expense-tracker
+   ```
+
+2. Install backend dependencies:
+   ```
+   cd backend
+   npm install
+   ```
+
+3. Install frontend dependencies:
+   ```
+   cd ../frontend
+   npm install
+   ```
+
+4. Configure environment (copy or edit `backend/.env`):
+   ```
+   MONGO_URI=mongodb://localhost:27017/expense-tracker
+   JWT_SECRET=your_super_secret_jwt_key_change_in_production
+   PORT=5000
+   ```
+
+### Running the Application
+
+1. Start MongoDB (local instance or Docker).
+2. Start the backend:
+   ```
+   cd backend
+   npm run dev
+   ```
+   (or `npm start`)
+
+3. Start the frontend (in new terminal):
+   ```
+   cd frontend
+   npm start
+   ```
+
+4. Open http://localhost:3000. Register a new account or login. All expenses are now private to your user.
+
+## API Endpoints
+
+- `POST /api/auth/register` — Create account
+- `POST /api/auth/login` — Login and receive JWT
+- `GET/POST/PATCH/DELETE /api/expenses` — Protected expense CRUD (user-scoped)
+
+All expense routes require `Authorization: Bearer <token>` header.
+
+## Project Structure
+
+- `backend/`: Express server, Mongoose models (User, Expense), routes (auth, expenses), middleware
+- `frontend/`: React app with AuthContext, protected routes, MUI components, charts
+
+This feature was implemented by updating the existing codebase (models, routes, server, frontend components, context, App, config) while preserving original coding standards, error handling, and UI/UX.
+
+For development, use separate terminals for backend/frontend.
