@@ -10,12 +10,13 @@ jest.mock('../constants', () => ({
   JWT_SECRET: 'test-secret-key'
 }));
 
-// Mock models
+// Mock models (updated for refactored static methods while preserving all original test behavior)
 jest.mock('../models/Expense', () => {
   const mockExpenseConstructor = jest.fn().mockImplementation((data) => ({
     ...data,
     _id: 'mockid123',
-    save: jest.fn().mockResolvedValue({ ...data, _id: 'mockid123', nextOccurrence: data.isRecurring ? new Date(Date.now() + 86400000) : null })
+    save: jest.fn().mockResolvedValue({ ...data, _id: 'mockid123', nextOccurrence: data.isRecurring ? new Date(Date.now() + 86400000) : null }),
+    updateFromInput: jest.fn().mockReturnThis()
   }));
   mockExpenseConstructor.find = jest.fn().mockResolvedValue([{
     amount: 50,
@@ -26,6 +27,7 @@ jest.mock('../models/Expense', () => {
     nextOccurrence: new Date(Date.now() + 86400000),
     user: 'mockuser123'
   }]);
+  mockExpenseConstructor.findByUser = mockExpenseConstructor.find; // alias for refactored static
   mockExpenseConstructor.findOne = jest.fn().mockResolvedValue(null);
   mockExpenseConstructor.create = jest.fn().mockResolvedValue({ _id: 'mockid123' });
   return mockExpenseConstructor;
@@ -39,6 +41,13 @@ jest.mock('../models/Budget', () => {
   }));
   mockBudgetConstructor.find = jest.fn().mockResolvedValue([]);
   mockBudgetConstructor.findOne = jest.fn().mockResolvedValue(null);
+  mockBudgetConstructor.findByUser = mockBudgetConstructor.find;
+  // Mock new static added in refactor (returns success for test)
+  mockBudgetConstructor.validateAndSave = jest.fn().mockResolvedValue({
+    category: 'Housing',
+    amount: 1500,
+    _id: 'mockbudgetid'
+  });
   return mockBudgetConstructor;
 });
 

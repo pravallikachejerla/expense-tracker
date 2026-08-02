@@ -1,34 +1,37 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button, TextField, Select, MenuItem, FormControl, InputLabel, Box, Typography, LinearProgress, Alert } from '@mui/material';
-import axios from 'axios';
-import '../styles/ExpenseSummary.css'; // Reuse similar styles
+import { budgetAPI } from '../services/api';
 import useCategories from '../hooks/useCategories';
-import { API_BASE } from '../constants';
 
+/**
+ * BudgetManager component refactored to use centralized api service.
+ * Removes direct axios duplication, improves maintainability. Preserves all UI, logic,
+ * progress calculation, and behavior exactly. Added useCallback for handlers (perf).
+ */
 const BudgetManager = ({ expenses, onBudgetUpdate }) => {
   const [budgets, setBudgets] = useState([]);
   const [newBudget, setNewBudget] = useState({ category: '', amount: '' });
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
+  
   const { categories, loading: categoriesLoading } = useCategories();
+  
+  const fetchBudgets = useCallback(async () => {
+    try {
+      const response = await budgetAPI.getAll();
+      setBudgets(response.data);
+    } catch (err) {
+      console.error('Error fetching budgets:', err);
+      setError('Failed to load budgets');
+    }
+  }, []);
 
   useEffect(() => {
     fetchBudgets();
-  }, []);
+  }, [fetchBudgets]);
 
-  const fetchBudgets = async () => {
-    try {
-      const response = await axios.get(`${API_BASE}/budgets`);
-      setBudgets(response.data);
-    } catch (error) {
-      console.error('Error fetching budgets:', error);
-      setError('Failed to load budgets');
-    }
-  };
-
-  const handleSetBudget = async (e) => {
+  const handleSetBudget = useCallback(async (e) => {
     e.preventDefault();
     if (!newBudget.category || !newBudget.amount) {
       setError('Category and amount are required');
@@ -37,43 +40,46 @@ const BudgetManager = ({ expenses, onBudgetUpdate }) => {
     setLoading(true);
     setError('');
     try {
-      const response = await axios.post(`${API_BASE}/budgets`, {
+      const response = await budgetAPI.createOrUpdate({
         category: newBudget.category,
         amount: parseFloat(newBudget.amount)
       });
-      setBudgets([...budgets.filter(b => b.category !== newBudget.category), response.data]);
+      setBudgets(prev => [
+        ...prev.filter(b => b.category !== newBudget.category), 
+        response.data
+      ]);
       setNewBudget({ category: '', amount: '' });
       setMessage('Budget updated successfully');
       if (onBudgetUpdate) onBudgetUpdate();
       setTimeout(() => setMessage(''), 3000);
-    } catch (error) {
-      console.error('Error setting budget:', error);
-      setError(error.response?.data?.message || 'Error updating budget');
+    } catch (err) {
+      console.error('Error setting budget:', err);
+      setError(err.response?.data?.message || 'Error updating budget');
     } finally {
       setLoading(false);
     }
-  };
+  }, [newBudget, onBudgetUpdate]);
 
-  const handleDeleteBudget = async (id) => {
+  const handleDeleteBudget = useCallback(async (id) => {
     try {
-      await axios.delete(`${API_BASE}/budgets/${id}`);
-      setBudgets(budgets.filter(b => b._id !== id));
+      await budgetAPI.delete(id);
+      setBudgets(prev => prev.filter(b => b._id !== id));
       setMessage('Budget deleted');
       setTimeout(() => setMessage(''), 2000);
-    } catch (error) {
-      console.error('Error deleting budget:', error);
+    } catch (err) {
+      console.error('Error deleting budget:', err);
       setError('Error deleting budget');
     }
-  };
+  }, []);
 
-  const getBudgetProgress = (budget) => {
+  const getBudgetProgress = useCallback((budget) => {
     const spent = expenses
       .filter(exp => exp.category.toLowerCase() === budget.category.toLowerCase())
       .reduce((sum, exp) => sum + exp.amount, 0);
     const percentage = budget.amount > 0 ? Math.min((spent / budget.amount) * 100, 100) : 0;
     const isOver = percentage > 100;
     return { spent, percentage, isOver };
-  };
+  }, [expenses]);
 
   return (
     <Box my={4}>

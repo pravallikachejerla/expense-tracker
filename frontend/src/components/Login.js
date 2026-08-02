@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { API_BASE } from '../constants';
+import { authAPI } from '../services/api';
 import { TextField, Button, Paper, Typography, Box, Alert } from '@mui/material';
 import { styled } from '@mui/material/styles';
 
@@ -24,10 +23,7 @@ const Login = ({ onSwitchToRegister }) => {
     setLoading(true);
     setError('');
     try {
-      const response = await axios.post(`${API_BASE}/auth/login`, {
-        email,
-        password
-      });
+      const response = await authAPI.login({ email, password });
       login(response.data.user, response.data.token);
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');

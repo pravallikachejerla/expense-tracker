@@ -2,12 +2,12 @@ const express = require('express');
 const router = express.Router();
 const Budget = require('../models/Budget');
 const auth = require('../middleware/auth');
-const { CATEGORIES } = require('../constants');
+const { CATEGORIES } = require('../utils/validators');
 
-// Get all budgets for the authenticated user
+// Get all budgets for the authenticated user (uses static + index)
 router.get('/', auth, async (req, res) => {
   try {
-    const budgets = await Budget.find({ user: req.user.id }).sort({ category: 1 });
+    const budgets = await Budget.findByUser(req.user.id);
     res.json(budgets);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -19,43 +19,19 @@ router.get('/categories', auth, (req, res) => {
   res.json(CATEGORIES);
 });
 
-// Set or update budget for a category (upsert style for simplicity)
+// Set or update budget (uses model static for validation, upsert logic, cleaner route)
 router.post('/', auth, async (req, res) => {
-  const { category, amount, period } = req.body;
-  
-  if (!CATEGORIES.includes(category)) {
-    return res.status(400).json({ message: 'Invalid category. Must be one of the standard categories.' });
-  }
-  
   try {
-    let budget = await Budget.findOne({ 
-      user: req.user.id, 
-      category, 
-      period: period || 'monthly' 
-    });
-    
-    if (budget) {
-      budget.amount = parseFloat(amount);
-      if (period) budget.period = period;
-      budget.startDate = Date.now();
-      const updatedBudget = await budget.save();
-      return res.json(updatedBudget);
-    } else {
-      budget = new Budget({
-        category,
-        amount: parseFloat(amount),
-        period: period || 'monthly',
-        user: req.user.id
-      });
-      const newBudget = await budget.save();
-      return res.status(201).json(newBudget);
-    }
+    const savedBudget = await Budget.validateAndSave(req.user.id, req.body);
+    const status = savedBudget.isNew ? 201 : 200;
+    res.status(status).json(savedBudget);
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    const status = err.message.includes('Invalid category') ? 400 : 400;
+    res.status(status).json({ message: err.message });
   }
 });
 
-// Delete budget
+// Delete budget (user-scoped)
 router.delete('/:id', auth, async (req, res) => {
   try {
     const budget = await Budget.findOneAndDelete({ _id: req.params.id, user: req.user.id });

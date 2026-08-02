@@ -2,18 +2,9 @@ const express = require('express');
 const router = express.Router();
 const Expense = require('../models/Expense');
 const auth = require('../middleware/auth');
-const { CATEGORIES, PAYMENT_METHODS, FREQUENCIES } = require('../constants');
+const { validateCategory, sanitizeExpenseInput, CATEGORIES } = require('../utils/validators');
 
-// Helper: validate category (centralized, improves maintainability)
-const validateCategory = (category, res) => {
-  if (!CATEGORIES.includes(category)) {
-    res.status(400).json({ message: 'Invalid category. Must be one of the standard categories.' });
-    return false;
-  }
-  return true;
-};
-
-// Helper: build CSV row (extracted for readability; no behavior change)
+// Helper: build CSV row (preserved for readability; no behavior change)
 const buildCSVRow = (exp) => {
   return [
     new Date(exp.date).toISOString().split('T')[0],
@@ -27,24 +18,23 @@ const buildCSVRow = (exp) => {
   ].join(',');
 };
 
-// Get all expenses for the authenticated user
+// Get all expenses for the authenticated user (uses static method + index for perf)
 router.get('/', auth, async (req, res) => {
   try {
-    const expenses = await Expense.find({ user: req.user.id }).sort({ date: -1 });
+    const expenses = await Expense.findByUser(req.user.id);
     res.json(expenses);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// Get recurring expenses
+// Get recurring expenses (uses index for efficiency)
 router.get('/recurring', auth, async (req, res) => {
   try {
-    const recurringExpenses = await Expense.find({ 
-      user: req.user.id, 
+    const recurringExpenses = await Expense.findByUser(req.user.id, {
       isRecurring: true,
       nextOccurrence: { $gte: new Date() }
-    }).sort({ nextOccurrence: 1 });
+    });
     res.json(recurringExpenses);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -56,10 +46,10 @@ router.get('/categories', auth, (req, res) => {
   res.json(CATEGORIES);
 });
 
-// Export expenses as CSV (user-scoped)
+// Export expenses as CSV (user-scoped, uses static for query)
 router.get('/export', auth, async (req, res) => {
   try {
-    const expenses = await Expense.find({ user: req.user.id }).sort({ date: -1 });
+    const expenses = await Expense.findByUser(req.user.id);
     
     if (expenses.length === 0) {
       return res.status(404).json({ message: 'No expenses to export' });
@@ -80,21 +70,13 @@ router.get('/export', auth, async (req, res) => {
   }
 });
 
-// Add new expense
+// Add new expense (uses sanitizer for cleaner input handling)
 router.post('/', auth, async (req, res) => {
-  const { amount, category, description, date, paymentMethod, isRecurring, frequency, nextOccurrence } = req.body;
+  if (!validateCategory(req.body.category, res)) return;
   
-  if (!validateCategory(category, res)) return;
-  
+  const sanitized = sanitizeExpenseInput(req.body);
   const expense = new Expense({
-    amount: parseFloat(amount),
-    category,
-    description,
-    date: date || Date.now(),
-    paymentMethod: paymentMethod || 'Other',
-    isRecurring: isRecurring || false,
-    frequency: frequency || 'none',
-    nextOccurrence: nextOccurrence || null,
+    ...sanitized,
     user: req.user.id
   });
 
@@ -106,25 +88,17 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
-// Update expense (only if owned by user)
+// Update expense (only if owned by user; uses model method for update logic)
 router.patch('/:id', auth, async (req, res) => {
   try {
-    const expense = await Expense.findOne({ _id: req.params.id, user: req.user.id });
+    let expense = await Expense.findOne({ _id: req.params.id, user: req.user.id });
     if (!expense) {
       return res.status(404).json({ message: 'Expense not found or unauthorized' });
     }
 
     if (req.body.category && !validateCategory(req.body.category, res)) return;
 
-    if (req.body.amount) expense.amount = parseFloat(req.body.amount);
-    if (req.body.category) expense.category = req.body.category;
-    if (req.body.description) expense.description = req.body.description;
-    if (req.body.date) expense.date = req.body.date;
-    if (req.body.paymentMethod) expense.paymentMethod = req.body.paymentMethod;
-    if (req.body.isRecurring !== undefined) expense.isRecurring = req.body.isRecurring;
-    if (req.body.frequency) expense.frequency = req.body.frequency;
-    if (req.body.nextOccurrence) expense.nextOccurrence = req.body.nextOccurrence;
-
+    expense.updateFromInput(req.body);  // uses sanitized update + recurring logic
     const updatedExpense = await expense.save();
     res.json(updatedExpense);
   } catch (err) {

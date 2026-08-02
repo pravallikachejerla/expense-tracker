@@ -4,13 +4,35 @@ import axios from 'axios';
 
 // All mocks MUST be declared BEFORE any imports that reference them (Jest hoisting)
 jest.mock('axios');
+jest.mock('./services/api', () => ({
+  default: jest.fn(),
+  expenseAPI: {
+    getAll: jest.fn().mockResolvedValue({ data: [] }),
+    getRecurring: jest.fn(),
+    getCategories: jest.fn().mockResolvedValue({ data: ['Food', 'Housing'] }),
+    create: jest.fn().mockResolvedValue({ data: { _id: 'new1', amount: 100, category: 'Food' } }),
+    update: jest.fn().mockResolvedValue({ data: { _id: '1', amount: 50 } }),
+    delete: jest.fn().mockResolvedValue({ data: {} }),
+    export: jest.fn().mockResolvedValue({ data: new Blob(['date,amount'], { type: 'text/csv' }) }),
+  },
+  budgetAPI: {
+    getAll: jest.fn().mockResolvedValue({ data: [] }),
+    createOrUpdate: jest.fn().mockResolvedValue({ data: { category: 'Housing', amount: 1500 } }),
+    delete: jest.fn().mockResolvedValue({ data: {} }),
+    getCategories: jest.fn(),
+  },
+  authAPI: {
+    login: jest.fn(),
+    register: jest.fn(),
+  },
+}));
 jest.mock('./context/AuthContext', () => ({
   useAuth: jest.fn(),
   AuthProvider: ({ children }) => <div data-testid="auth-provider">{children}</div>,
 }));
 jest.mock('./context/ThemeContext', () => ({
   useTheme: () => ({ mode: 'light', toggleTheme: jest.fn() }),
-  ThemeProvider: ({ children }) => <div data-testid="theme-provider">{children}</div>,
+  ThemeProviderWrapper: ({ children }) => <div data-testid="theme-provider">{children}</div>,
 }));
 jest.mock('react-chartjs-2', () => ({
   Pie: () => <div data-testid="pie-chart">Pie Chart Mock</div>,
@@ -26,6 +48,7 @@ jest.mock('recharts', () => ({
 
 import App from './App';
 import * as AuthContext from './context/AuthContext';
+import * as api from './services/api';  // for spy if needed
 
 const mockLogout = jest.fn();
 const mockUser = { username: 'testuser' };
@@ -53,26 +76,21 @@ describe('Expense Tracker App', () => {
       });
     }
 
-    // Mock all API calls used by App, AddExpenseModal, BudgetManager, ExpenseList, Summary, hooks, and new features (recurring + CSV export)
-    axios.get.mockImplementation((url) => {
-      if (url.includes('/expenses/categories') || url.includes('/categories')) {
-        return Promise.resolve({ data: ['Food', 'Transport', 'Housing', 'Utilities', 'Entertainment'] });
-      }
-      if (url.includes('/api/expenses') || url.includes('/expenses')) {
-        return Promise.resolve({ data: [] });
-      }
-      if (url.includes('/budgets')) {
-        return Promise.resolve({ data: [] });
-      }
-      if (url.includes('/expenses/export')) {
-        return Promise.resolve({ 
-          data: new Blob(['id,amount,category,date\n1,50,Food,2024-01-01'], { type: 'text/csv' }) 
-        });
-      }
-      return Promise.resolve({ data: {} });
+    // Update mocks for refactored api service and hooks (covers new structure)
+    api.expenseAPI.getAll.mockResolvedValue({ data: [] });
+    api.expenseAPI.getCategories.mockResolvedValue({ data: ['Food', 'Housing', 'Utilities'] });
+    api.budgetAPI.getAll.mockResolvedValue({ data: [] });
+    api.budgetAPI.createOrUpdate.mockResolvedValue({ data: { category: 'Housing', amount: 1500 } });
+    api.expenseAPI.export.mockResolvedValue({ 
+      data: new Blob(['id,amount,category,date\n1,50,Food,2024-01-01'], { type: 'text/csv' }) 
     });
-
-    axios.post.mockResolvedValue({ data: { _id: 'new1', amount: 100, category: 'Food', isRecurring: false, frequency: 'monthly' } });
+    axios.get.mockImplementation((url) => {
+      if (url.includes('/categories')) {
+        return Promise.resolve({ data: ['Food', 'Housing'] });
+      }
+      return Promise.resolve({ data: [] });
+    });
+    axios.post.mockResolvedValue({ data: { _id: 'new1', amount: 100, category: 'Food', isRecurring: false } });
     axios.delete.mockResolvedValue({ data: {} });
   });
 
@@ -97,10 +115,7 @@ describe('Expense Tracker App', () => {
     fireEvent.click(exportButton);
 
     await waitFor(() => {
-      expect(axios.get).toHaveBeenCalledWith(
-        expect.stringContaining('/expenses/export'),
-        expect.objectContaining({ responseType: 'blob' })
-      );
+      expect(api.expenseAPI.export).toHaveBeenCalled();
     });
   });
 

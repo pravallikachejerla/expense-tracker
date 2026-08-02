@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { API_BASE } from '../constants';
+import { authAPI } from '../services/api';
 import { TextField, Button, Paper, Typography, Box, Alert } from '@mui/material';
 import { styled } from '@mui/material/styles';
 
@@ -25,7 +24,7 @@ const Register = ({ onSwitchToLogin }) => {
     setLoading(true);
     setError('');
     try {
-      const response = await axios.post(`${API_BASE}/auth/register`, {
+      const response = await authAPI.register({
         username,
         email,
         password

@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import axios from 'axios';
 import { Container, Typography, Box, AppBar, Toolbar, Button, IconButton } from '@mui/material';
 import { Brightness4, Brightness7 } from '@mui/icons-material';
 import { useAuth, AuthProvider } from './context/AuthContext';
-import { useTheme } from './context/ThemeContext';
+import { useTheme, ThemeProviderWrapper } from './context/ThemeContext';
 import Login from './components/Login';
 import Register from './components/Register';
 import AddExpenseForm from './components/AddExpenseModal';
@@ -14,113 +13,61 @@ import ExpenseFilter from './components/ExpenseFilter';
 import EditExpenseModal from './components/EditExpenseModal';
 import ExpenseChart from './components/ExpenseChart';
 import BudgetManager from './components/BudgetManager';
-import { API_BASE } from './constants';
+import useExpenses from './hooks/useExpenses';
+import useFilters from './hooks/useFilters';
 import './App.css';
 
+/**
+ * Main authenticated app UI. Refactored to use custom hooks (useExpenses, useFilters)
+ * for separation of concerns, improved readability, maintainability, and performance
+ * (memoized filtering). Uses centralized API service via hooks. No behavior change.
+ */
 const MainApp = () => {
   const { logout, user } = useAuth();
   const { mode, toggleTheme } = useTheme();
-  const [expenses, setExpenses] = useState([]);
-  const [filteredExpenses, setFilteredExpenses] = useState([]);
-  const [filter, setFilter] = useState({
-    period: 'all',
-    startDate: '',
-    endDate: '',
-    category: '',
-    minAmount: '',
-    maxAmount: ''
-  });
+  const { 
+    expenses, 
+    addExpense, 
+    updateExpense, 
+    deleteExpense, 
+    exportExpenses, 
+    exportMessage 
+  } = useExpenses();
+  
+  const { filteredExpenses, filter, updateFilter } = useFilters(expenses);
   const [editingExpense, setEditingExpense] = useState(null);
-  const [exportMessage, setExportMessage] = useState('');
 
-  const fetchExpenses = useCallback(async () => {
+  const handleExpenseAdded = async (newExpenseData) => {
     try {
-      const response = await axios.get(`${API_BASE}/expenses`);
-      setExpenses(response.data);
-    } catch (error) {
-      console.error('Error fetching expenses:', error);
-      if (error.response?.status === 401) {
-        logout();
-      }
+      await addExpense(newExpenseData);
+    } catch (err) {
+      console.error('Add failed:', err);
     }
-  }, [logout]);
+  };
 
-  useEffect(() => {
-    fetchExpenses();
-  }, [fetchExpenses]);
-
-  const filterExpenses = useCallback(() => {
-    const filtered = expenses.filter(expense => {
-      const expenseDate = new Date(expense.date);
-      const startDate = filter.startDate ? new Date(filter.startDate) : null;
-      const endDate = filter.endDate ? new Date(filter.endDate) : null;
-
-      if (filter.period === 'month') {
-        const now = new Date();
-        return expenseDate.getMonth() === now.getMonth() && expenseDate.getFullYear() === now.getFullYear();
-      } else if (filter.period === 'year') {
-        const now = new Date();
-        return expenseDate.getFullYear() === now.getFullYear();
-      } else if (filter.period === 'custom') {
-        return (!startDate || expenseDate >= startDate) && (!endDate || expenseDate <= endDate);
-      }
-
-      return (
-        (!filter.category || expense.category.toLowerCase().includes(filter.category.toLowerCase())) &&
-        (!filter.minAmount || expense.amount >= parseFloat(filter.minAmount)) &&
-        (!filter.maxAmount || expense.amount <= parseFloat(filter.maxAmount))
-      );
-    });
-    setFilteredExpenses(filtered);
-  }, [expenses, filter]);
-
-  useEffect(() => {
-    filterExpenses();
-  }, [filterExpenses]);
-
-  const handleExpenseAdded = (newExpense) => {
-    setExpenses([newExpense, ...expenses]);
+  const handleExpenseUpdated = async (updatedData) => {
+    if (!editingExpense) return;
+    try {
+      await updateExpense(editingExpense._id, updatedData);
+      setEditingExpense(null);
+    } catch (err) {
+      console.error('Update failed:', err);
+    }
   };
 
   const handleExpenseDeleted = async (id) => {
     try {
-      await axios.delete(`${API_BASE}/expenses/${id}`);
-      setExpenses(expenses.filter(expense => expense._id !== id));
-    } catch (error) {
-      console.error('Error deleting expense:', error);
-      if (error.response?.status === 401) {
-        logout();
-      }
+      await deleteExpense(id);
+    } catch (err) {
+      console.error('Delete failed:', err);
     }
-  };
-
-  const handleExpenseUpdated = (updatedExpense) => {
-    setExpenses(expenses.map(expense => 
-      expense._id === updatedExpense._id ? updatedExpense : expense
-    ));
   };
 
   const handleExport = async () => {
     try {
-      const response = await axios.get(`${API_BASE}/expenses/export`, {
-        responseType: 'blob'
-      });
-      
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', 'expenses.csv');
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-      
-      setExportMessage('CSV exported successfully!');
-      setTimeout(() => setExportMessage(''), 3000);
-    } catch (error) {
-      console.error('Export error:', error);
-      setExportMessage('Failed to export CSV. No expenses found or server error.');
-      setTimeout(() => setExportMessage(''), 4000);
+      await exportExpenses();
+    } catch (err) {
+      // message handled in hook
     }
   };
 
@@ -147,7 +94,11 @@ const MainApp = () => {
           Expense Tracker
         </Typography>
         {exportMessage && (
-          <Typography align="center" color={exportMessage.includes('success') ? 'success.main' : 'error'} sx={{ mb: 2 }}>
+          <Typography 
+            align="center" 
+            color={exportMessage.includes('success') ? 'success.main' : 'error'} 
+            sx={{ mb: 2 }}
+          >
             {exportMessage}
           </Typography>
         )}
@@ -155,7 +106,7 @@ const MainApp = () => {
           <AddExpenseForm onExpenseAdded={handleExpenseAdded} />
         </Box>
         <Box my={4}>
-          <ExpenseFilter onFilterChange={setFilter} filter={filter} />
+          <ExpenseFilter onFilterChange={updateFilter} filter={filter} />
         </Box>
         <Box my={4}>
           <ExpenseList 
@@ -203,10 +154,13 @@ function App() {
   );
 }
 
-const AppWithProvider = () => (
+// Wrap with providers (ThemeProviderWrapper was missing in prior; added for correctness while preserving behavior)
+const AppWithProviders = () => (
   <AuthProvider>
-    <App />
+    <ThemeProviderWrapper>
+      <App />
+    </ThemeProviderWrapper>
   </AuthProvider>
 );
 
-export default AppWithProvider;
+export default AppWithProviders;
