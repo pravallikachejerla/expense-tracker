@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import axios from 'axios';
-import { Container, Typography, Box, AppBar, Toolbar, Button } from '@mui/material';
+import { Container, Typography, Box, AppBar, Toolbar, Button, IconButton } from '@mui/material';
+import { Brightness4, Brightness7 } from '@mui/icons-material';
 import { useAuth, AuthProvider } from './context/AuthContext';
+import { useTheme } from './context/ThemeContext';
 import Login from './components/Login';
 import Register from './components/Register';
 import AddExpenseForm from './components/AddExpenseModal';
@@ -16,6 +18,7 @@ import './App.css';
 
 const MainApp = () => {
   const { logout, user } = useAuth();
+  const { mode, toggleTheme } = useTheme();
   const [expenses, setExpenses] = useState([]);
   const [filteredExpenses, setFilteredExpenses] = useState([]);
   const [filter, setFilter] = useState({
@@ -130,6 +133,9 @@ const MainApp = () => {
           <Button color="inherit" onClick={handleExport} sx={{ mr: 2 }}>
             Export CSV
           </Button>
+          <IconButton color="inherit" onClick={toggleTheme} sx={{ mr: 2 }}>
+            {mode === 'dark' ? <Brightness7 /> : <Brightness4 />}
+          </IconButton>
           <Button color="inherit" onClick={logout}>
             Logout
           </Button>

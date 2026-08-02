@@ -2,15 +2,6 @@
 
 Expense Tracker is a full-stack web application that helps users manage, categorize, budget, and visualize personal expenses. Built with React, Material-UI, Express.js, Mongoose, and MongoDB. Features robust **JWT authentication**, per-user data isolation, **standardized categories with validation**, **budget tracking with progress alerts**, **interactive charts**, **CSV export**, and **recurring expenses support with projections**.
 
-## Features
-- User registration/login (JWT-based, with AuthContext interceptor).
-- CRUD for expenses (user-scoped; supports recurring with frequency and auto nextOccurrence).
-- Standardized categories (12 enums enforced in backend/frontend; dynamic API fetch).
-- Advanced filtering, summaries, recurring projections (using date-fns), and interactive Recharts.
-- Monthly budgets per category with real-time progress bars and over-budget alerts.
-- Export expenses to CSV (includes recurring fields; pure Node implementation).
-- Responsive MUI design with modals, badges, and protected routes.
-- Comprehensive error handling, validation, and security.
 
 ## Recent Improvements & Refactors
 (Aligned with prior analysis, bug/security/performance/duplicate fixes, and refactor stages — see `changes-report.docx` for full summary.)
@@ -27,14 +18,7 @@ Expense Tracker is a full-stack web application that helps users manage, categor
 - Performance: Efficient DB sorts, single queries, lightweight CSV generation. No duplicates found.
 - Recurring/budget calculations hardened.
 
-**Added Features** (by modifying existing codebase after all modifications, per session facts):
-- Recurring expenses (fields, UI toggles in modals, badges in list, projections in summary, dedicated endpoint).
-- CSV export endpoint + header button.
-- All changes preserve existing auth, UI patterns, Mongoose models, and MUI components.
 
-These were implemented **by modifying the existing codebase** (models, routes, components, styles, README) **before making any [further] changes** and **after all modifications**, with **Docker file updates** referenced in history (none present in final repo).
-
-## Technologies Used
 - **Backend**: Node.js, Express, Mongoose, JWT (jsonwebtoken), bcryptjs, dotenv.
 - **Frontend**: React 18, Material-UI (@mui/*), Axios, React Router, Recharts/React-ChartJS-2, date-fns, Context API.
 - **Database**: MongoDB.
