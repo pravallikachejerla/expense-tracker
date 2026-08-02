@@ -2,8 +2,11 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const { JWT_SECRET } = require('../constants');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
+const generateToken = (userId) => {
+  return jwt.sign({ id: userId }, JWT_SECRET, { expiresIn: '1h' });
+};
 
 // Register user
 router.post('/register', async (req, res) => {
@@ -18,8 +21,11 @@ router.post('/register', async (req, res) => {
     const user = new User({ username, email, password });
     await user.save();
 
-    const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '1h' });
-    res.status(201).json({ token, user: { id: user._id, username: user.username, email: user.email } });
+    const token = generateToken(user._id);
+    res.status(201).json({ 
+      token, 
+      user: { id: user._id, username: user.username, email: user.email } 
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -35,8 +41,11 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'your_jwt_secret_key', { expiresIn: '1h' });
-    res.json({ token, user: { id: user._id, username: user.username, email: user.email } });
+    const token = generateToken(user._id);
+    res.json({ 
+      token, 
+      user: { id: user._id, username: user.username, email: user.email } 
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

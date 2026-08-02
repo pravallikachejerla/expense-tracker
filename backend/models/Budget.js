@@ -1,15 +1,11 @@
 const mongoose = require('mongoose');
-
-const categories = [
-  'Food', 'Transportation', 'Housing', 'Utilities', 'Entertainment',
-  'Healthcare', 'Education', 'Shopping', 'Personal', 'Debt', 'Savings', 'Other'
-];
+const { CATEGORIES } = require('../constants');
 
 const BudgetSchema = new mongoose.Schema({
   category: {
     type: String,
     required: true,
-    enum: categories
+    enum: CATEGORIES
   },
   amount: {
     type: Number,

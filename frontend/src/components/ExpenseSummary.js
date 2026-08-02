@@ -1,35 +1,55 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { format } from 'date-fns';
 import '../styles/ExpenseSummary.css';
 
-const ExpenseSummary = ({ expenses }) => {
-  const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-  const categorySummary = expenses.reduce((summary, expense) => {
-    summary[expense.category] = (summary[expense.category] || 0) + expense.amount;
-    return summary;
-  }, {});
+const ExpenseSummary = ({ expenses = [] }) => {
+  const computations = useMemo(() => {
+    const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+    const categorySummary = expenses.reduce((summary, expense) => {
+      summary[expense.category] = (summary[expense.category] || 0) + expense.amount;
+      return summary;
+    }, {});
 
-  const monthlySummary = expenses.reduce((summary, expense) => {
-    const monthYear = format(new Date(expense.date), 'MMM yyyy');
-    summary[monthYear] = (summary[monthYear] || 0) + expense.amount;
-    return summary;
-  }, {});
+    const monthlySummary = expenses.reduce((summary, expense) => {
+      const monthYear = format(new Date(expense.date), 'MMM yyyy');
+      summary[monthYear] = (summary[monthYear] || 0) + expense.amount;
+      return summary;
+    }, {});
 
-  const recurringExpenses = expenses.filter(e => e.isRecurring);
-  const recurringCount = recurringExpenses.length;
-  const recurringTotal = recurringExpenses.reduce((sum, e) => sum + e.amount, 0);
-  
-  // Simple projection for monthly recurring (aligns with frequency)
-  const projectedMonthlyRecurring = recurringExpenses.reduce((sum, e) => {
-    if (e.frequency === 'weekly') return sum + (e.amount * 4);
-    if (e.frequency === 'monthly') return sum + e.amount;
-    if (e.frequency === 'yearly') return sum + (e.amount / 12);
-    return sum;
-  }, 0);
+    const recurringExpenses = expenses.filter(e => e.isRecurring);
+    const recurringCount = recurringExpenses.length;
+    const recurringTotal = recurringExpenses.reduce((sum, e) => sum + e.amount, 0);
+    
+    // Simple projection for monthly recurring (aligns with frequency)
+    const projectedMonthlyRecurring = recurringExpenses.reduce((sum, e) => {
+      if (e.frequency === 'weekly') return sum + (e.amount * 4);
+      if (e.frequency === 'monthly') return sum + e.amount;
+      if (e.frequency === 'yearly') return sum + (e.amount / 12);
+      return sum;
+    }, 0);
 
-  const averageExpense = totalExpenses / expenses.length || 0;
-  const highestExpense = Math.max(...expenses.map(e => e.amount), 0);
-  const lowestExpense = Math.min(...expenses.map(e => e.amount), 0);
+    const averageExpense = totalExpenses / expenses.length || 0;
+    const highestExpense = Math.max(...expenses.map(e => e.amount), 0);
+    const lowestExpense = Math.min(...expenses.map(e => e.amount), 0);
+
+    return {
+      totalExpenses,
+      categorySummary,
+      monthlySummary,
+      recurringCount,
+      recurringTotal,
+      projectedMonthlyRecurring,
+      averageExpense,
+      highestExpense,
+      lowestExpense
+    };
+  }, [expenses]);
+
+  const {
+    totalExpenses, categorySummary, monthlySummary, recurringCount,
+    recurringTotal, projectedMonthlyRecurring, averageExpense,
+    highestExpense, lowestExpense
+  } = computations;
 
   return (
     <div className="expense-summary">
@@ -98,4 +118,4 @@ const ExpenseSummary = ({ expenses }) => {
   );
 };
 
-export default ExpenseSummary;
+export default React.memo(ExpenseSummary);

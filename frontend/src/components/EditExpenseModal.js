@@ -2,42 +2,33 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Select, MenuItem, FormControl, InputLabel, Alert, Switch, FormControlLabel } from '@mui/material';
 import axios from 'axios';
 import '../styles/EditExpenseModal.css';
+import useCategories from '../hooks/useCategories';
+import { API_BASE } from '../constants';
 
 const EditExpenseModal = ({ expense, onClose, onExpenseUpdated }) => {
-  const [amount, setAmount] = useState(expense.amount);
-  const [category, setCategory] = useState(expense.category);
-  const [description, setDescription] = useState(expense.description);
-  const [date, setDate] = useState(expense.date.split('T')[0]);
-  const [paymentMethod, setPaymentMethod] = useState(expense.paymentMethod || 'Other');
-  const [isRecurring, setIsRecurring] = useState(expense.isRecurring || false);
-  const [frequency, setFrequency] = useState(expense.frequency && expense.frequency !== 'none' ? expense.frequency : 'monthly');
-  const [categories, setCategories] = useState([]);
+  const [amount, setAmount] = useState(expense?.amount || '');
+  const [category, setCategory] = useState(expense?.category || '');
+  const [description, setDescription] = useState(expense?.description || '');
+  const [date, setDate] = useState(expense?.date ? expense.date.split('T')[0] : '');
+  const [paymentMethod, setPaymentMethod] = useState(expense?.paymentMethod || 'Other');
+  const [isRecurring, setIsRecurring] = useState(expense?.isRecurring || false);
+  const [frequency, setFrequency] = useState(expense?.frequency && expense.frequency !== 'none' ? expense.frequency : 'monthly');
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await axios.get('http://localhost:5000/api/expenses/categories');
-        setCategories(response.data);
-      } catch (err) {
-        console.error('Failed to fetch categories, using defaults');
-        setCategories([
-          'Food', 'Transportation', 'Housing', 'Utilities', 'Entertainment',
-          'Healthcare', 'Education', 'Shopping', 'Personal', 'Debt', 'Savings', 'Other'
-        ]);
-      }
-    };
-    fetchCategories();
+  const { categories, loading: categoriesLoading } = useCategories();
 
-    // Reset form when expense changes (support new recurring fields)
-    setAmount(expense.amount);
-    setCategory(expense.category);
-    setDescription(expense.description);
-    setDate(expense.date.split('T')[0]);
-    setPaymentMethod(expense.paymentMethod || 'Other');
-    setIsRecurring(expense.isRecurring || false);
-    setFrequency(expense.frequency && expense.frequency !== 'none' ? expense.frequency : 'monthly');
-    setError('');
+  // Reset form when expense prop changes (single source of truth, no duplication)
+  useEffect(() => {
+    if (expense) {
+      setAmount(expense.amount || '');
+      setCategory(expense.category || '');
+      setDescription(expense.description || '');
+      setDate(expense.date ? expense.date.split('T')[0] : '');
+      setPaymentMethod(expense.paymentMethod || 'Other');
+      setIsRecurring(expense.isRecurring || false);
+      setFrequency(expense.frequency && expense.frequency !== 'none' ? expense.frequency : 'monthly');
+      setError('');
+    }
   }, [expense]);
 
   const handleSubmit = async (e) => {
@@ -47,7 +38,7 @@ const EditExpenseModal = ({ expense, onClose, onExpenseUpdated }) => {
       return;
     }
     try {
-      const response = await axios.patch(`http://localhost:5000/api/expenses/${expense._id}`, {
+      const response = await axios.patch(`${API_BASE}/expenses/${expense._id}`, {
         amount: parseFloat(amount),
         category,
         description,
@@ -86,6 +77,7 @@ const EditExpenseModal = ({ expense, onClose, onExpenseUpdated }) => {
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               label="Category"
+              disabled={categoriesLoading}
             >
               {categories.map((cat) => (
                 <MenuItem key={cat} value={cat}>{cat}</MenuItem>

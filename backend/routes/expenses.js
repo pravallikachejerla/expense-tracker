@@ -2,11 +2,30 @@ const express = require('express');
 const router = express.Router();
 const Expense = require('../models/Expense');
 const auth = require('../middleware/auth');
+const { CATEGORIES, PAYMENT_METHODS, FREQUENCIES } = require('../constants');
 
-const categories = [
-  'Food', 'Transportation', 'Housing', 'Utilities', 'Entertainment',
-  'Healthcare', 'Education', 'Shopping', 'Personal', 'Debt', 'Savings', 'Other'
-];
+// Helper: validate category (centralized, improves maintainability)
+const validateCategory = (category, res) => {
+  if (!CATEGORIES.includes(category)) {
+    res.status(400).json({ message: 'Invalid category. Must be one of the standard categories.' });
+    return false;
+  }
+  return true;
+};
+
+// Helper: build CSV row (extracted for readability; no behavior change)
+const buildCSVRow = (exp) => {
+  return [
+    new Date(exp.date).toISOString().split('T')[0],
+    exp.amount,
+    `"${exp.category}"`,
+    `"${(exp.description || '').replace(/"/g, '""')}"`,
+    `"${exp.paymentMethod || 'Other'}"`,
+    exp.isRecurring ? 'Yes' : 'No',
+    `"${exp.frequency || 'none'}"`,
+    exp.nextOccurrence ? new Date(exp.nextOccurrence).toISOString().split('T')[0] : ''
+  ].join(',');
+};
 
 // Get all expenses for the authenticated user
 router.get('/', auth, async (req, res) => {
@@ -18,7 +37,7 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// Get recurring expenses (new feature endpoint)
+// Get recurring expenses
 router.get('/recurring', auth, async (req, res) => {
   try {
     const recurringExpenses = await Expense.find({ 
@@ -34,10 +53,10 @@ router.get('/recurring', auth, async (req, res) => {
 
 // Get categories (for frontend consistency)
 router.get('/categories', auth, (req, res) => {
-  res.json(categories);
+  res.json(CATEGORIES);
 });
 
-// Export expenses as CSV (user-scoped, extended for recurring)
+// Export expenses as CSV (user-scoped)
 router.get('/export', auth, async (req, res) => {
   try {
     const expenses = await Expense.find({ user: req.user.id }).sort({ date: -1 });
@@ -46,22 +65,11 @@ router.get('/export', auth, async (req, res) => {
       return res.status(404).json({ message: 'No expenses to export' });
     }
 
-    // Build CSV manually (no extra deps), extended for recurring fields
     const headers = ['Date', 'Amount', 'Category', 'Description', 'Payment Method', 'Recurring', 'Frequency', 'Next Occurrence'];
     let csv = headers.join(',') + '\n';
     
     expenses.forEach(exp => {
-      const row = [
-        new Date(exp.date).toISOString().split('T')[0],
-        exp.amount,
-        `"${exp.category}"`,
-        `"${(exp.description || '').replace(/"/g, '""')}"`,
-        `"${exp.paymentMethod || 'Other'}"`,
-        exp.isRecurring ? 'Yes' : 'No',
-        `"${exp.frequency || 'none'}"`,
-        exp.nextOccurrence ? new Date(exp.nextOccurrence).toISOString().split('T')[0] : ''
-      ];
-      csv += row.join(',') + '\n';
+      csv += buildCSVRow(exp) + '\n';
     });
 
     res.setHeader('Content-Type', 'text/csv');
@@ -72,13 +80,11 @@ router.get('/export', auth, async (req, res) => {
   }
 });
 
-// Add new expense for the authenticated user (extended for recurring)
+// Add new expense
 router.post('/', auth, async (req, res) => {
   const { amount, category, description, date, paymentMethod, isRecurring, frequency, nextOccurrence } = req.body;
   
-  if (!categories.includes(category)) {
-    return res.status(400).json({ message: 'Invalid category. Must be one of the standard categories.' });
-  }
+  if (!validateCategory(category, res)) return;
   
   const expense = new Expense({
     amount: parseFloat(amount),
@@ -100,7 +106,7 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
-// Update expense (only if owned by user, extended for recurring)
+// Update expense (only if owned by user)
 router.patch('/:id', auth, async (req, res) => {
   try {
     const expense = await Expense.findOne({ _id: req.params.id, user: req.user.id });
@@ -108,9 +114,7 @@ router.patch('/:id', auth, async (req, res) => {
       return res.status(404).json({ message: 'Expense not found or unauthorized' });
     }
 
-    if (req.body.category && !categories.includes(req.body.category)) {
-      return res.status(400).json({ message: 'Invalid category. Must be one of the standard categories.' });
-    }
+    if (req.body.category && !validateCategory(req.body.category, res)) return;
 
     if (req.body.amount) expense.amount = parseFloat(req.body.amount);
     if (req.body.category) expense.category = req.body.category;

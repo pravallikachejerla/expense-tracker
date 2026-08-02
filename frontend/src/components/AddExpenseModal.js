@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 import '../styles/AddExpenseModal.css';
+import useCategories from '../hooks/useCategories';
+import { API_BASE } from '../constants';
 
 import { 
   TextField, 
@@ -44,25 +46,10 @@ const AddExpenseForm = ({ onExpenseAdded }) => {
   const [paymentMethod, setPaymentMethod] = useState('Other');
   const [isRecurring, setIsRecurring] = useState(false);
   const [frequency, setFrequency] = useState('monthly');
-  const [categories, setCategories] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await axios.get('http://localhost:5000/api/expenses/categories');
-        setCategories(response.data);
-      } catch (err) {
-        console.error('Failed to fetch categories, using defaults');
-        setCategories([
-          'Food', 'Transportation', 'Housing', 'Utilities', 'Entertainment',
-          'Healthcare', 'Education', 'Shopping', 'Personal', 'Debt', 'Savings', 'Other'
-        ]);
-      }
-    };
-    fetchCategories();
-  }, []);
+  const { categories, loading: categoriesLoading } = useCategories();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -73,7 +60,7 @@ const AddExpenseForm = ({ onExpenseAdded }) => {
     setLoading(true);
     setError('');
     try {
-      const response = await axios.post('http://localhost:5000/api/expenses', {
+      const response = await axios.post(`${API_BASE}/expenses`, {
         amount: parseFloat(amount),
         category,
         description,
@@ -130,6 +117,7 @@ const AddExpenseForm = ({ onExpenseAdded }) => {
                 onChange={(e) => setCategory(e.target.value)}
                 required
                 label="Category"
+                disabled={categoriesLoading}
               >
                 {categories.map((cat) => (
                   <MenuItem key={cat} value={cat}>{cat}</MenuItem>
@@ -207,7 +195,7 @@ const AddExpenseForm = ({ onExpenseAdded }) => {
           variant="contained"
           color="primary"
           fullWidth
-          disabled={loading}
+          disabled={loading || categoriesLoading}
         >
           {loading ? 'Adding...' : 'Add Expense'}
         </SubmitButton>

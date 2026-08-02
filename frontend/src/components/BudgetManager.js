@@ -2,39 +2,29 @@ import React, { useState, useEffect } from 'react';
 import { Button, TextField, Select, MenuItem, FormControl, InputLabel, Box, Typography, LinearProgress, Alert } from '@mui/material';
 import axios from 'axios';
 import '../styles/ExpenseSummary.css'; // Reuse similar styles
+import useCategories from '../hooks/useCategories';
+import { API_BASE } from '../constants';
 
 const BudgetManager = ({ expenses, onBudgetUpdate }) => {
   const [budgets, setBudgets] = useState([]);
   const [newBudget, setNewBudget] = useState({ category: '', amount: '' });
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  const { categories, loading: categoriesLoading } = useCategories();
+
   useEffect(() => {
-    fetchCategories();
     fetchBudgets();
   }, []);
 
-  const fetchCategories = async () => {
-    try {
-      const response = await axios.get('http://localhost:5000/api/expenses/categories');
-      setCategories(response.data);
-    } catch (err) {
-      console.error('Failed to fetch categories, using defaults');
-      setCategories([
-        'Food', 'Transportation', 'Housing', 'Utilities', 'Entertainment',
-        'Healthcare', 'Education', 'Shopping', 'Personal', 'Debt', 'Savings', 'Other'
-      ]);
-    }
-  };
-
   const fetchBudgets = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/budgets');
+      const response = await axios.get(`${API_BASE}/budgets`);
       setBudgets(response.data);
     } catch (error) {
       console.error('Error fetching budgets:', error);
+      setError('Failed to load budgets');
     }
   };
 
@@ -47,7 +37,7 @@ const BudgetManager = ({ expenses, onBudgetUpdate }) => {
     setLoading(true);
     setError('');
     try {
-      const response = await axios.post('http://localhost:5000/api/budgets', {
+      const response = await axios.post(`${API_BASE}/budgets`, {
         category: newBudget.category,
         amount: parseFloat(newBudget.amount)
       });
@@ -66,7 +56,7 @@ const BudgetManager = ({ expenses, onBudgetUpdate }) => {
 
   const handleDeleteBudget = async (id) => {
     try {
-      await axios.delete(`http://localhost:5000/api/budgets/${id}`);
+      await axios.delete(`${API_BASE}/budgets/${id}`);
       setBudgets(budgets.filter(b => b._id !== id));
       setMessage('Budget deleted');
       setTimeout(() => setMessage(''), 2000);
@@ -99,6 +89,7 @@ const BudgetManager = ({ expenses, onBudgetUpdate }) => {
             value={newBudget.category}
             label="Category"
             onChange={(e) => setNewBudget({ ...newBudget, category: e.target.value })}
+            disabled={categoriesLoading}
           >
             {categories.map(cat => (
               <MenuItem key={cat} value={cat}>{cat}</MenuItem>
@@ -113,7 +104,7 @@ const BudgetManager = ({ expenses, onBudgetUpdate }) => {
           sx={{ width: 150 }}
           InputProps={{ inputProps: { min: 0, step: 0.01 } }}
         />
-        <Button type="submit" variant="contained" disabled={loading}>
+        <Button type="submit" variant="contained" disabled={loading || categoriesLoading}>
           {loading ? 'Setting...' : 'Set Budget'}
         </Button>
       </Box>

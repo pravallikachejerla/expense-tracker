@@ -1,9 +1,5 @@
 const mongoose = require('mongoose');
-
-const categories = [
-  'Food', 'Transportation', 'Housing', 'Utilities', 'Entertainment',
-  'Healthcare', 'Education', 'Shopping', 'Personal', 'Debt', 'Savings', 'Other'
-];
+const { CATEGORIES, PAYMENT_METHODS, FREQUENCIES } = require('../constants');
 
 const ExpenseSchema = new mongoose.Schema({
   amount: {
@@ -13,7 +9,7 @@ const ExpenseSchema = new mongoose.Schema({
   category: {
     type: String,
     required: true,
-    enum: categories
+    enum: CATEGORIES
   },
   date: {
     type: Date,
@@ -25,7 +21,7 @@ const ExpenseSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
-    enum: ['Cash', 'Credit Card', 'Debit Card', 'Bank Transfer', 'Other'],
+    enum: PAYMENT_METHODS,
     default: 'Other'
   },
   isRecurring: {
@@ -34,7 +30,7 @@ const ExpenseSchema = new mongoose.Schema({
   },
   frequency: {
     type: String,
-    enum: ['none', 'weekly', 'monthly', 'yearly'],
+    enum: FREQUENCIES,
     default: 'none'
   },
   nextOccurrence: {
@@ -48,14 +44,20 @@ const ExpenseSchema = new mongoose.Schema({
   }
 });
 
-// Simple pre-save hook to set nextOccurrence for new recurring expenses
+// Helper to calculate next occurrence (improves readability/maintainability)
+const calculateNextOccurrence = (date, frequency) => {
+  if (!frequency || frequency === 'none') return null;
+  const nextDate = new Date(date);
+  if (frequency === 'weekly') nextDate.setDate(nextDate.getDate() + 7);
+  else if (frequency === 'monthly') nextDate.setMonth(nextDate.getMonth() + 1);
+  else if (frequency === 'yearly') nextDate.setFullYear(nextDate.getFullYear() + 1);
+  return nextDate;
+};
+
+// Improved pre-save hook (cleaner, uses helper, no direct mutation side-effects in condition)
 ExpenseSchema.pre('save', function(next) {
   if (this.isRecurring && this.frequency !== 'none' && !this.nextOccurrence) {
-    const nextDate = new Date(this.date);
-    if (this.frequency === 'weekly') nextDate.setDate(nextDate.getDate() + 7);
-    else if (this.frequency === 'monthly') nextDate.setMonth(nextDate.getMonth() + 1);
-    else if (this.frequency === 'yearly') nextDate.setFullYear(nextDate.getFullYear() + 1);
-    this.nextOccurrence = nextDate;
+    this.nextOccurrence = calculateNextOccurrence(this.date, this.frequency);
   }
   next();
 });
