@@ -1,26 +1,3 @@
-// Mock at top for hoisting
-jest.mock('mongoose', () => ({
-  Schema: function () {
-    this.index = jest.fn();
-    this.pre = jest.fn((event, callback) => callback && callback());
-    return this;
-  },
-  model: jest.fn(() => ({
-    findByUser: jest.fn(),
-    calculateNextOccurrence: jest.fn(),
-    prototype: {
-      updateFromInput: jest.fn(),
-    },
-  })),
-  Schema: {
-    Types: {
-      ObjectId: jest.fn(),
-    },
-  },
-}));
-
-const { calculateNextOccurrence } = require('../../models/Expense'); // only import pure static if possible, but since attached to model
-// For simplicity, test the logic directly from constants/validators since model test is complex due to mongoose
 const { validateFrequency } = require('../../utils/validators');
 const { CATEGORIES, FREQUENCIES } = require('../../constants');
 

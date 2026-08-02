@@ -5,9 +5,10 @@
   "scripts": {
     "install:all": "cd backend && npm install && cd ../frontend && npm install",
     "dev": "concurrently \"npm run dev --prefix backend\" \"npm run start --prefix frontend\"",
-
-
+    "test": "npm test --prefix backend && npm run test --prefix frontend -- --watchAll=false --ci",
+    "build": "npm run build --prefix frontend",
     "start:backend": "npm start --prefix backend",
+    "start": "npm run start:backend",
     "generate:report": "node generate-report.js"
   },
   "dependencies": {
