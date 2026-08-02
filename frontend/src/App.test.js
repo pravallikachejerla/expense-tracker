@@ -8,6 +8,10 @@ jest.mock('./context/AuthContext', () => ({
   useAuth: jest.fn(),
   AuthProvider: ({ children }) => <div data-testid="auth-provider">{children}</div>,
 }));
+jest.mock('./context/ThemeContext', () => ({
+  useTheme: () => ({ mode: 'light', toggleTheme: jest.fn() }),
+  ThemeProvider: ({ children }) => <div data-testid="theme-provider">{children}</div>,
+}));
 jest.mock('react-chartjs-2', () => ({
   Pie: () => <div data-testid="pie-chart">Pie Chart Mock</div>,
   Bar: () => <div data-testid="bar-chart">Bar Chart Mock</div>,

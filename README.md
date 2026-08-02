@@ -93,12 +93,3 @@ This aligns with existing architecture (Node/Express/Mongo layered with context 
 - `frontend/`: Standard CRA + src/components (modals, lists, charts, summary, auth), context, hooks, styles, constants.
 - Root: package.json (with scripts), docs (README.md, architecture.md, api.md), `changes-report.docx`, Docker files.
 
-## Development Notes
-- Use separate terminals if not using `npm run dev`.
-- All routes protected except auth.
-- Categories enforced everywhere for data quality.
-- See `changes-report.docx` for complete summary of **implemented changes** (refactors, fixes, features, documentation).
-
-This documentation was **updated/created as part of the final task**. For questions, refer to the DOCX report or architecture file.
-
-Last updated for Task T9252799a (Docker + Env Config feature) on 2026-08-02.

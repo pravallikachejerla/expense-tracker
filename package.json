@@ -5,8 +5,8 @@
   "scripts": {
     "install:all": "cd backend && npm install && cd ../frontend && npm install",
     "dev": "concurrently \"npm run dev --prefix backend\" \"npm run start --prefix frontend\"",
-    "build": "npm run build --prefix frontend",
-    "test": "echo \"No root tests. Run in subdirs.\"",
+
+
     "start:backend": "npm start --prefix backend",
     "generate:report": "node generate-report.js"
   },

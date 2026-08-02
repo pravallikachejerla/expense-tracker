@@ -12,7 +12,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Health check endpoint (for verification, works without DB)
+// Health check endpoint (for verification, works without DB - key for Docker)
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 
@@ -40,16 +40,20 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
-// Connect to MongoDB (non-blocking for sandbox/CI)
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/expense-tracker')
-  .then(() => console.log('Connected to Database'))
-  .catch((error) => console.error('Failed to connect to Database (expected in sandbox without MongoDB):', error.message));
+// Only connect and listen if not in test environment (fixes test EADDRINUSE, open handles, and sandbox Mongo issues)
+if (process.env.NODE_ENV !== 'test') {
+  // Connect to MongoDB (non-blocking for sandbox/CI)
+  mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/expense-tracker')
+    .then(() => console.log('Connected to Database'))
+    .catch((error) => console.error('Failed to connect to Database (expected in sandbox without MongoDB):', error.message));
 
-// Always start server even if DB fails
-const server = app.listen(PORT, () => {
-  console.log(`Server started on port ${PORT}`);
-  console.log(`Health check available at http://localhost:${PORT}/health`);
-});
+  // Start server
+  const server = app.listen(PORT, () => {
+    console.log(`Server started on port ${PORT}`);
+    console.log(`Health check available at http://localhost:${PORT}/health`);
+  });
+  
+  module.exports.server = server; // for graceful shutdown in tests if needed
+}
 
-module.exports = app; // for potential testing
-module.exports.server = server; // for graceful shutdown in tests if needed
+module.exports = app; // for testing (supertest uses this)
