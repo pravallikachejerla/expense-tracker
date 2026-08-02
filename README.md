@@ -86,14 +86,7 @@ Alternatively:
 
 Open http://localhost:3000. Register/login, use category dropdowns, recurring toggles in modals, view projections/badges, set budgets, export CSV from header.
 
-**Generating Report**: `npm run generate:report` (creates/updates `changes-report.docx`).
 
-**Build for Production**: `npm run build` (frontend only).
-
-**Tests**: Frontend has CRA tests; backend has none (add via Jest if needed). Run `npm test`.
-
-### Docker Note
-Prior sessions referenced updating Docker files. No `Dockerfile` or `docker-compose.yml` currently in the repo. Add them for containerized Mongo/Express/React if desired (e.g., multi-stage builds). See `changes-report.docx`.
 
 ## Project Structure
 - `backend/`: server.js, models (User/Expense with hooks/enums/Budget), routes (with helpers/validation), middleware/auth.js, constants.js.
