@@ -1,5 +1,5 @@
 import React from 'react';
-import { List, ListItem, ListItemText, ListItemSecondaryAction, IconButton, Typography } from '@mui/material';
+import { List, ListItem, ListItemText, ListItemSecondaryAction, IconButton, Typography, Chip } from '@mui/material';
 import { Delete, Edit } from '@mui/icons-material';
 import '../styles/ExpenseList.css';
 
@@ -16,6 +16,14 @@ const ExpenseList = ({ expenses, onDelete, onEdit }) => {
               primary={
                 <Typography variant="subtitle1" className="expense-description">
                   {expense.description}
+                  {expense.isRecurring && (
+                    <Chip 
+                      label="Recurring" 
+                      color="secondary" 
+                      size="small" 
+                      sx={{ ml: 1 }}
+                    />
+                  )}
                 </Typography>
               }
               secondary={
@@ -31,6 +39,11 @@ const ExpenseList = ({ expenses, onDelete, onEdit }) => {
                   <Typography component="span" variant="body2" className="expense-date">
                     {new Date(expense.date).toLocaleDateString()}
                   </Typography>
+                  {expense.isRecurring && expense.frequency && (
+                    <Typography component="span" variant="body2" sx={{ ml: 1, color: 'text.secondary' }}>
+                      ({expense.frequency}) Next: {expense.nextOccurrence ? new Date(expense.nextOccurrence).toLocaleDateString() : 'N/A'}
+                    </Typography>
+                  )}
                 </React.Fragment>
               }
             />

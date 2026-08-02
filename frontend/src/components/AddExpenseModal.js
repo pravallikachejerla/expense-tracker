@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import '../styles/AddExpenseModal.css';
+import useCategories from '../hooks/useCategories';
+import { API_BASE } from '../constants';
 
 import { 
   TextField, 
@@ -11,7 +13,10 @@ import {
   Select, 
   MenuItem, 
   FormControl, 
-  InputLabel 
+  InputLabel,
+  Alert,
+  Switch,
+  FormControlLabel
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 
@@ -33,32 +38,44 @@ const SubmitButton = styled(Button)(({ theme }) => ({
   marginTop: theme.spacing(2),
 }));
 
-const categories = [
-  'Food', 'Transportation', 'Housing', 'Utilities', 'Entertainment', 
-  'Healthcare', 'Education', 'Personal', 'Debt', 'Savings', 'Other'
-];
-
 const AddExpenseForm = ({ onExpenseAdded }) => {
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [paymentMethod, setPaymentMethod] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('Other');
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [frequency, setFrequency] = useState('monthly');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const { categories, loading: categoriesLoading } = useCategories();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!amount || !category || !description) {
+      setError('Please fill all required fields');
+      return;
+    }
+    setLoading(true);
+    setError('');
     try {
-      const response = await axios.post('http://localhost:5000/api/expenses', {
+      const response = await axios.post(`${API_BASE}/expenses`, {
         amount: parseFloat(amount),
         category,
         description,
         date,
-        paymentMethod
+        paymentMethod,
+        isRecurring,
+        frequency: isRecurring ? frequency : 'none'
       });
       onExpenseAdded(response.data);
       resetForm();
     } catch (error) {
       console.error('Error adding expense:', error);
+      setError(error.response?.data?.message || 'Failed to add expense');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -67,7 +84,10 @@ const AddExpenseForm = ({ onExpenseAdded }) => {
     setCategory('');
     setDescription('');
     setDate(new Date().toISOString().split('T')[0]);
-    setPaymentMethod('');
+    setPaymentMethod('Other');
+    setIsRecurring(false);
+    setFrequency('monthly');
+    setError('');
   };
 
   return (
@@ -75,6 +95,7 @@ const AddExpenseForm = ({ onExpenseAdded }) => {
       <Typography variant="h6" gutterBottom>
         Add New Expense
       </Typography>
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       <StyledForm onSubmit={handleSubmit}>
         <Grid container spacing={3}>
           <Grid item xs={12} sm={6}>
@@ -95,6 +116,8 @@ const AddExpenseForm = ({ onExpenseAdded }) => {
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 required
+                label="Category"
+                disabled={categoriesLoading}
               >
                 {categories.map((cat) => (
                   <MenuItem key={cat} value={cat}>{cat}</MenuItem>
@@ -128,7 +151,7 @@ const AddExpenseForm = ({ onExpenseAdded }) => {
               <Select
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value)}
-                required
+                label="Payment Method"
               >
                 <MenuItem value="Cash">Cash</MenuItem>
                 <MenuItem value="Credit Card">Credit Card</MenuItem>
@@ -138,14 +161,43 @@ const AddExpenseForm = ({ onExpenseAdded }) => {
               </Select>
             </StyledFormControl>
           </Grid>
+          <Grid item xs={12} sm={6}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={isRecurring}
+                  onChange={(e) => setIsRecurring(e.target.checked)}
+                  color="primary"
+                />
+              }
+              label="Recurring Expense"
+            />
+          </Grid>
+          {isRecurring && (
+            <Grid item xs={12} sm={6}>
+              <StyledFormControl>
+                <InputLabel>Frequency</InputLabel>
+                <Select
+                  value={frequency}
+                  onChange={(e) => setFrequency(e.target.value)}
+                  label="Frequency"
+                >
+                  <MenuItem value="weekly">Weekly</MenuItem>
+                  <MenuItem value="monthly">Monthly</MenuItem>
+                  <MenuItem value="yearly">Yearly</MenuItem>
+                </Select>
+              </StyledFormControl>
+            </Grid>
+          )}
         </Grid>
         <SubmitButton
           type="submit"
           variant="contained"
           color="primary"
           fullWidth
+          disabled={loading || categoriesLoading}
         >
-          Add Expense
+          {loading ? 'Adding...' : 'Add Expense'}
         </SubmitButton>
       </StyledForm>
     </FormPaper>

@@ -1,24 +1,83 @@
 const express = require('express');
 const router = express.Router();
 const Expense = require('../models/Expense');
+const auth = require('../middleware/auth');
+const { validateCategory, sanitizeExpenseInput, CATEGORIES } = require('../utils/validators');
 
-// Get all expenses
-router.get('/', async (req, res) => {
+// Helper: build CSV row (preserved for readability; no behavior change)
+const buildCSVRow = (exp) => {
+  return [
+    new Date(exp.date).toISOString().split('T')[0],
+    exp.amount,
+    `"${exp.category}"`,
+    `"${(exp.description || '').replace(/"/g, '""')}"`,
+    `"${exp.paymentMethod || 'Other'}"`,
+    exp.isRecurring ? 'Yes' : 'No',
+    `"${exp.frequency || 'none'}"`,
+    exp.nextOccurrence ? new Date(exp.nextOccurrence).toISOString().split('T')[0] : ''
+  ].join(',');
+};
+
+// Get all expenses for the authenticated user (uses static method + index for perf)
+router.get('/', auth, async (req, res) => {
   try {
-    const expenses = await Expense.find().sort({ date: -1 });
+    const expenses = await Expense.findByUser(req.user.id);
     res.json(expenses);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// Add new expense
-router.post('/', async (req, res) => {
+// Get recurring expenses (uses index for efficiency)
+router.get('/recurring', auth, async (req, res) => {
+  try {
+    const recurringExpenses = await Expense.findByUser(req.user.id, {
+      isRecurring: true,
+      nextOccurrence: { $gte: new Date() }
+    });
+    res.json(recurringExpenses);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Get categories (for frontend consistency)
+router.get('/categories', auth, (req, res) => {
+  res.json(CATEGORIES);
+});
+
+// Export expenses as CSV (user-scoped, uses static for query)
+router.get('/export', auth, async (req, res) => {
+  try {
+    const expenses = await Expense.findByUser(req.user.id);
+    
+    if (expenses.length === 0) {
+      return res.status(404).json({ message: 'No expenses to export' });
+    }
+
+    const headers = ['Date', 'Amount', 'Category', 'Description', 'Payment Method', 'Recurring', 'Frequency', 'Next Occurrence'];
+    let csv = headers.join(',') + '\n';
+    
+    expenses.forEach(exp => {
+      csv += buildCSVRow(exp) + '\n';
+    });
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=expenses.csv');
+    res.send(csv);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Add new expense (uses sanitizer for cleaner input handling)
+router.post('/', auth, async (req, res) => {
+  if (!validateCategory(req.body.category, res)) return;
+  
+  const sanitized = sanitizeExpenseInput(req.body);
   const expense = new Expense({
-    amount: req.body.amount,
-    category: req.body.category,
-    description: req.body.description,
-    date: req.body.date
+    ...sanitized,
+    user: req.user.id
   });
 
   try {
@@ -29,15 +88,17 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Update expense
-router.patch('/:id', async (req, res) => {
+// Update expense (only if owned by user; uses model method for update logic)
+router.patch('/:id', auth, async (req, res) => {
   try {
-    const expense = await Expense.findById(req.params.id);
-    if (req.body.amount) expense.amount = req.body.amount;
-    if (req.body.category) expense.category = req.body.category;
-    if (req.body.description) expense.description = req.body.description;
-    if (req.body.date) expense.date = req.body.date;
+    let expense = await Expense.findOne({ _id: req.params.id, user: req.user.id });
+    if (!expense) {
+      return res.status(404).json({ message: 'Expense not found or unauthorized' });
+    }
 
+    if (req.body.category && !validateCategory(req.body.category, res)) return;
+
+    expense.updateFromInput(req.body);  // uses sanitized update + recurring logic
     const updatedExpense = await expense.save();
     res.json(updatedExpense);
   } catch (err) {
@@ -45,10 +106,13 @@ router.patch('/:id', async (req, res) => {
   }
 });
 
-// Delete expense
-router.delete('/:id', async (req, res) => {
+// Delete expense (only if owned by user)
+router.delete('/:id', auth, async (req, res) => {
   try {
-    await Expense.findByIdAndDelete(req.params.id);
+    const expense = await Expense.findOneAndDelete({ _id: req.params.id, user: req.user.id });
+    if (!expense) {
+      return res.status(404).json({ message: 'Expense not found or unauthorized' });
+    }
     res.json({ message: 'Expense deleted' });
   } catch (err) {
     res.status(500).json({ message: err.message });
