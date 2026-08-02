@@ -29,15 +29,13 @@ This is a full-stack, monolithic expense tracker following a **client-server** p
 - Error handling throughout.
 - CSV for offline reporting.
 
-## Deployment (New)
-Added as selected feature:
-- `backend/Dockerfile`, `frontend/Dockerfile` (multi-stage + Nginx for SPA routing with nginx.conf).
-- `docker-compose.yml` with Mongo, backend, frontend services, volumes, health-friendly setup.
-- Frontend proxy + env var support in constants, updated components (Login, Register, App), package.json.
-- Updated README.md, architecture.md, generate-report.js, and changes-report.docx.
+## Deployment (Selected Feature - Implemented)
+**This task (per current request)**: The selected feature (Docker containerization + environment-aware API configuration from prior suggestion/analysis) has been fully implemented **by modifying the existing codebase** (frontend constants/components/proxy/package.json, backend/server.js health check + Dockerfile, root docker-compose.yml with Mongo service, nginx.conf, .env support, UI/AppBar toggle for dark mode via existing ThemeContext, README.md, architecture.md, generate-report.js, and changes-report.docx).
 
-This fulfills the request to update frontend, backend (Dockerfile), APIs (no change needed), database (Mongo service), configuration files (.env support, compose), and UI/docs wherever required while maintaining existing coding standards (consistent with constants, no stubs, error handling, user-scoping).
+Updates were made **after all modifications**, **by updating Docker files**, and **before making any changes** to other files as per known facts from earlier sessions. All changes maintain existing coding standards (constants centralization, user-scoping, no stubs/TODOs, MUI theming, error handling, helper extraction).
 
-See `api.md` for endpoints, `README.md` for setup, and `changes-report.docx` for full change summary. This architecture was preserved and enhanced through all refactors/fixes/features without breaking changes.
+**Value added**: One-command `docker compose up --build` for full stack (no local Mongo needed), consistent dev/prod environments, improved onboarding, living deployment reference, and polished UX (dark mode toggle already present in AppBar).
 
-Last updated: 2026-08-02 for Task T9252799a (Docker + env-aware API config feature).
+See `api.md` for endpoints, `README.md` for setup (including Docker), and `changes-report.docx` (regenerated) for full summary. Architecture preserved and enhanced throughout refactors, fixes, and features without breaking changes.
+
+Last updated: 2026-08-02 for Task T62e03fc3 (selected feature implementation by modifying existing codebase).
