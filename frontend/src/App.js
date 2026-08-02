@@ -14,6 +14,7 @@ import ExpenseFilter from './components/ExpenseFilter';
 import EditExpenseModal from './components/EditExpenseModal';
 import ExpenseChart from './components/ExpenseChart';
 import BudgetManager from './components/BudgetManager';
+import { API_BASE } from './constants';
 import './App.css';
 
 const MainApp = () => {
@@ -34,7 +35,7 @@ const MainApp = () => {
 
   const fetchExpenses = useCallback(async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/expenses');
+      const response = await axios.get(`${API_BASE}/expenses`);
       setExpenses(response.data);
     } catch (error) {
       console.error('Error fetching expenses:', error);
@@ -83,7 +84,7 @@ const MainApp = () => {
 
   const handleExpenseDeleted = async (id) => {
     try {
-      await axios.delete(`http://localhost:5000/api/expenses/${id}`);
+      await axios.delete(`${API_BASE}/expenses/${id}`);
       setExpenses(expenses.filter(expense => expense._id !== id));
     } catch (error) {
       console.error('Error deleting expense:', error);
@@ -101,7 +102,7 @@ const MainApp = () => {
 
   const handleExport = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/expenses/export', {
+      const response = await axios.get(`${API_BASE}/expenses/export`, {
         responseType: 'blob'
       });
       
@@ -186,11 +187,11 @@ const MainApp = () => {
 
 function App() {
   const { user, loading } = useAuth();
-
+  
   if (loading) {
     return <Typography align="center" sx={{ mt: 8 }}>Loading...</Typography>;
   }
-
+  
   return (
     <Router>
       <Routes>

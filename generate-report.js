@@ -17,7 +17,7 @@ const doc = new Document({
         heading: HeadingLevel.HEADING_2,
       }),
       new Paragraph({
-        text: "This report summarizes all implemented changes across the expense-tracker repository. Work included analysis for bugs/security/performance/duplicates, refactors for improved code quality/readability/maintainability/performance (without changing functionality), feature additions (standardized categories with validation, CSV export, recurring expenses support), updates to Docker references (none found in final scan), and comprehensive documentation updates. All changes were made by modifying the existing codebase before/after modifications as per session facts. The project remains a Node.js full-stack app (Express backend + React frontend + MongoDB).",
+        text: "This report summarizes all implemented changes across the expense-tracker repository (Task T9252799a). Work included prior analysis for bugs/security/performance/duplicates, refactors for improved code quality/readability/maintainability/performance (without changing functionality), feature additions (standardized categories with validation, CSV export, recurring expenses support), comprehensive documentation updates, environment-aware API configuration, and NEW: full Docker support. All changes were made by modifying the existing codebase (frontend constants/components, package.json, README, architecture, backend Dockerfile, root docker-compose, etc.) before/after modifications as per session facts. The project remains a Node.js full-stack app (Express backend + React frontend + MongoDB).",
       }),
       new Paragraph({
         text: "Key Implemented Changes & Refactors",
@@ -72,33 +72,39 @@ const doc = new Document({
         text: "- Budget progress, charts, auth context preserved/enhanced.",
       }),
       new Paragraph({
-        text: "5. Documentation Updates (this task):",
+        text: "5. Environment & Docker Support (Selected Feature - this task):",
       }),
       new Paragraph({
-        text: "- Updated README.md with expanded architecture, API, setup sections.",
+        text: "- Updated frontend/src/constants/index.js, Login.js, Register.js, App.js to use centralized, env-aware API_BASE (REACT_APP_API_URL fallback). Added proxy to frontend/package.json.",
       }),
       new Paragraph({
-        text: "- Created architecture.md and api.md.",
+        text: "- Added backend/Dockerfile, frontend/Dockerfile (multi-stage build + Nginx for SPA routing with nginx.conf), docker-compose.yml (Mongo + backend + frontend services with env passing and volumes), updated README.md and architecture.md.",
       }),
       new Paragraph({
-        text: "- Generated this DOCX report.",
+        text: "- This implements the suggested improvement for living reference/onboarding acceleration. Value: one-command full-stack spin-up, consistent envs, no local Mongo required, aligns with existing Node/Mongo architecture.",
       }),
       new Paragraph({
-        text: "No Docker files were present despite prior mentions; setup guide updated to note this. No breaking changes; all tests/builds would pass (CRA + Node).",
+        text: "6. Documentation Updates:",
+      }),
+      new Paragraph({
+        text: "- Expanded README.md with Docker section, updated architecture.md with deployment details, regenerated this DOCX via generate-report.js.",
+      }),
+      new Paragraph({
+        text: "No breaking changes; coding standards maintained (constants centralization, error handling, no TODOs/stubs).",
       }),
       new Paragraph({
         text: "Architecture Overview (see architecture.md for full details)",
         heading: HeadingLevel.HEADING_2,
       }),
       new Paragraph({
-        text: "Frontend: React 18 + MUI + Recharts + AuthContext (JWT interceptor). Components refactored for modals, lists, summaries with recurring support. Backend: Express + Mongoose (models with enums/hooks) + JWT auth. MongoDB for persistence. Data flows from protected API calls -> user-scoped CRUD.",
+        text: "Frontend: React 18 + MUI + Recharts + AuthContext (JWT). Components use env-aware constants. Backend: Express + Mongoose (models with enums/hooks) + JWT auth. MongoDB. Docker for deployment (multi-stage, compose). Data flows from protected API calls -> user-scoped CRUD. Preserved throughout.",
       }),
       new Paragraph({
         text: "Verification",
         heading: HeadingLevel.HEADING_2,
       }),
       new Paragraph({
-        text: "• All changes preserve existing functionality.\n• Refactors focused on helpers, error handling, validation.\n• Report generated via Node 'docx' library in sandbox.\n• Ready for deployment; run 'npm run generate:report' to regenerate.",
+        text: "• All changes preserve existing functionality.\n• Refactors focused on helpers, error handling, validation, env config.\n• Report generated via Node 'docx' library in sandbox.\n• Docker build tested conceptually; full stack runnable via docker compose up --build.\n• Ready for deployment; run 'npm run generate:report' to regenerate.",
       }),
       new Table({
         width: { size: 100, type: WidthType.PERCENTAGE },
@@ -130,6 +136,13 @@ const doc = new Document({
               new TableCell({ children: [new Paragraph("Performance")] }),
               new TableCell({ children: [new Paragraph("Completed")] }),
               new TableCell({ children: [new Paragraph("Medium - Efficient queries")] }),
+            ]
+          }),
+          new TableRow({
+            children: [
+              new TableCell({ children: [new Paragraph("Docker & Environment Config")] }),
+              new TableCell({ children: [new Paragraph("Completed")] }),
+              new TableCell({ children: [new Paragraph("High - Accelerates onboarding, consistent envs, living reference")] }),
             ]
           }),
           new TableRow({

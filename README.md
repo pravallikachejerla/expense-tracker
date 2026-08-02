@@ -2,7 +2,6 @@
 
 Expense Tracker is a full-stack web application that helps users manage, categorize, budget, and visualize personal expenses. Built with React, Material-UI, Express.js, Mongoose, and MongoDB. Features robust **JWT authentication**, per-user data isolation, **standardized categories with validation**, **budget tracking with progress alerts**, **interactive charts**, **CSV export**, and **recurring expenses support with projections**.
 
-
 ## Recent Improvements & Refactors
 (Aligned with prior analysis, bug/security/performance/duplicate fixes, and refactor stages — see `changes-report.docx` for full summary.)
 
@@ -17,7 +16,6 @@ Expense Tracker is a full-stack web application that helps users manage, categor
 - Security: Strengthened ownership checks in PATCH/DELETE; auth middleware everywhere.
 - Performance: Efficient DB sorts, single queries, lightweight CSV generation. No duplicates found.
 - Recurring/budget calculations hardened.
-
 
 - **Backend**: Node.js, Express, Mongoose, JWT (jsonwebtoken), bcryptjs, dotenv.
 - **Frontend**: React 18, Material-UI (@mui/*), Axios, React Router, Recharts/React-ChartJS-2, date-fns, Context API.
@@ -38,17 +36,12 @@ See [`api.md`](api.md) for complete endpoint reference, request/response example
 - (Optional) Docker if adding containerization later.
 
 ### Installation
-1. Clone the repo:
+1. Clone the repo.
+2. Install dependencies:
    ```bash
-   git clone https://github.com/pravallikachejerla/expense-tracker.git
-   cd expense-tracker
-   ```
-
-2. Install all dependencies:
-   ```bash
+   npm install
    npm run install:all
    ```
-
 3. Configure environment (`backend/.env`):
    ```
    MONGO_URI=mongodb://localhost:27017/expense-tracker
@@ -70,12 +63,35 @@ Alternatively:
 
 Open http://localhost:3000. Register/login, use category dropdowns, recurring toggles in modals, view projections/badges, set budgets, export CSV from header.
 
+## Docker Support (New Feature)
+**Selected feature implemented**: Environment-aware API configuration (REACT_APP_API_URL + proxy in package.json + constants update across Login/Register/App) + full Docker containerization.
 
+This aligns with existing architecture (Node/Express/Mongo layered with context providers, constants centralization, Mongoose models). Updates were made to frontend (API_BASE usage, proxy, Dockerfile/nginx), configuration (docker-compose, .env fallback), database (Mongo service), and documentation.
+
+**Why it adds value**:
+- Accelerates onboarding (one command `docker compose up --build` spins up full stack with Mongo, no local DB install needed).
+- Ensures consistent environments across dev/prod/CI.
+- Creates a living reference for deployment patterns.
+- Supports the DME (Documentation Maintenance Engine) by including deployment in auto-report.
+- Maintains all existing coding standards (no stubs, consistent with constants, error handling, user-scoping).
+
+### Docker Setup
+1. Ensure Docker + Docker Compose v2 installed.
+2. Run:
+   ```bash
+   docker compose up --build
+   ```
+3. Access:
+   - Frontend UI: http://localhost:3000
+   - API: http://localhost:5000/api (health at /health)
+   - Mongo: localhost:27017
+4. Stop: `docker compose down -v`
+5. Customize via `.env` or compose overrides.
 
 ## Project Structure
 - `backend/`: server.js, models (User/Expense with hooks/enums/Budget), routes (with helpers/validation), middleware/auth.js, constants.js.
 - `frontend/`: Standard CRA + src/components (modals, lists, charts, summary, auth), context, hooks, styles, constants.
-- Root: package.json (with scripts), docs (README.md, architecture.md, api.md), `changes-report.docx`.
+- Root: package.json (with scripts), docs (README.md, architecture.md, api.md), `changes-report.docx`, Docker files.
 
 ## Development Notes
 - Use separate terminals if not using `npm run dev`.
@@ -85,4 +101,4 @@ Open http://localhost:3000. Register/login, use category dropdowns, recurring to
 
 This documentation was **updated/created as part of the final task**. For questions, refer to the DOCX report or architecture file.
 
-Last updated for Task T0f07d225 (2026-08-02).
+Last updated for Task T9252799a (Docker + Env Config feature) on 2026-08-02.

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { API_BASE } from '../constants';
 import { TextField, Button, Paper, Typography, Box, Alert } from '@mui/material';
 import { styled } from '@mui/material/styles';
 
@@ -23,7 +24,7 @@ const Login = ({ onSwitchToRegister }) => {
     setLoading(true);
     setError('');
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/login', {
+      const response = await axios.post(`${API_BASE}/auth/login`, {
         email,
         password
       });
