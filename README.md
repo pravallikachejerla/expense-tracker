@@ -1,95 +1,113 @@
 # Expense Tracker
 
-Expense Tracker is a full-stack web application that helps users manage, categorize, budget, and visualize personal expenses. Built with React, Material-UI, Express.js, Mongoose, and MongoDB. Features robust **JWT authentication**, per-user data isolation, **standardized categories with validation**, **budget tracking with progress alerts**, **interactive charts**, **CSV export**, and **recurring expenses support with projections**.
+A full-stack web application for managing, categorizing, budgeting, and visualizing personal expenses. Built with **React + Material-UI**, **Express + Mongoose**, MongoDB, and JWT authentication. Supports standardized categories, recurring expenses with projections, budget tracking with alerts, interactive charts, CSV export, and full Docker deployment.
 
-## Recent Improvements & Refactors
-(Aligned with prior analysis, bug/security/performance/duplicate fixes, and refactor stages — see `changes-report.docx` for full summary.)
+## Table of Contents
+- [Recent Improvements](#recent-improvements)
+- [Architecture Overview](#architecture-overview)
+- [API Documentation](#api-documentation)
+- [Setup Guide](#setup-guide)
+- [Docker Support](#docker-support)
+- [Project Structure](#project-structure)
+- [Documentation](#documentation)
+
+## Recent Improvements
+(Aligned with refactor, analysis/fixes, feature implementation, and documentation stages — see [`changes-report.docx`](changes-report.docx) for full summary.)
 
 **Refactors (Quality, Readability, Maintainability, Performance):**
 - Extracted helpers (`validateCategory`, `buildCSVRow`, `calculateNextOccurrence`) in `backend/routes/expenses.js` and `backend/models/Expense.js`.
-- Improved Mongoose pre-save hook and global error handlers in `backend/server.js`.
-- Centralized constants in `backend/constants.js`; dynamic category loading in frontend components (no more duplication).
-- User-scoped queries optimized; no behavior change to existing functionality.
+- Improved Mongoose pre-save hooks and global error handlers in `backend/server.js`.
+- Centralized constants in `backend/constants.js`; dynamic category loading in frontend (no duplication).
+- Optimized user-scoped queries; **no behavior change** to existing functionality.
 
-**Fixes from Analysis:**
-- Category validation bugs fixed (enums + route checks prevent inconsistent data).
-- Security: Strengthened ownership checks in PATCH/DELETE; auth middleware everywhere.
-- Performance: Efficient DB sorts, single queries, lightweight CSV generation. No duplicates found.
-- Recurring/budget calculations hardened.
+**Fixes from Analysis Stage:**
+- Fixed category validation (Mongoose enums + route checks).
+- Strengthened security (ownership checks, auth middleware on all protected routes).
+- Performance: DB-level sorts, single queries, lightweight CSV. No duplicate code found.
+- Hardened recurring and budget calculations.
 
-- **Backend**: Node.js, Express, Mongoose, JWT (jsonwebtoken), bcryptjs, dotenv.
-- **Frontend**: React 18, Material-UI (@mui/*), Axios, React Router, Recharts/React-ChartJS-2, date-fns, Context API.
+**Tech Stack:**
+- **Backend**: Node.js, Express, Mongoose, JWT (`jsonwebtoken`), `bcryptjs`, `dotenv`.
+- **Frontend**: React 18, Material-UI (`@mui/*`), Axios, React Router, Recharts, `date-fns`, Context API.
 - **Database**: MongoDB.
-- **Docs**: Markdown + auto-generated DOCX.
+- **Deployment**: Docker Compose + Nginx.
+- **Docs**: Markdown + auto-generated DOCX report.
 
 ## Architecture Overview
-See [`architecture.md`](architecture.md) for detailed layered view, data flows, design decisions (helpers for maintainability, user-scoping for security, enums/hooks for consistency), and non-functional aspects.
+See [`architecture.md`](architecture.md) for layered view, data flows (with Mermaid diagram), design decisions (helpers, user-scoping, enums/hooks), non-functional aspects, and deployment.
 
 ## API Documentation
-See [`api.md`](api.md) for complete endpoint reference, request/response examples, auth requirements, validation rules, and error codes. Key additions: `/categories`, `/recurring`, `/export`.
+See [`api.md`](api.md) for complete endpoint reference with request/response examples, auth requirements, validation, and error codes. Key endpoints: `/categories`, `/recurring`, `/export`.
 
 ## Setup Guide
-### Prerequisites
-- Node.js (v16+ recommended)
-- npm
-- MongoDB (local, Docker, or Atlas — update `backend/.env`)
-- (Optional) Docker if adding containerization later.
 
-### Installation
-1. Clone the repo.
+### Prerequisites
+- Node.js (v18+ recommended)
+- npm / yarn
+- MongoDB (local instance, Docker, or MongoDB Atlas)
+- Docker + Docker Compose (for containerized run)
+
+### Local Installation & Run
+1. Clone the repository.
 2. Install dependencies:
    ```bash
    npm install
    npm run install:all
    ```
-3. Configure environment (`backend/.env`):
-   ```
+3. Create `backend/.env`:
+   ```env
    MONGO_URI=mongodb://localhost:27017/expense-tracker
    JWT_SECRET=your_super_secret_jwt_key_change_in_production
    PORT=5000
    ```
-
-### Running the Application
-1. Ensure MongoDB is running.
-2. Start everything:
+4. Start MongoDB locally (or use Docker).
+5. Run the full stack:
    ```bash
    npm run dev
    ```
-   (Uses concurrently for backend on :5000 + frontend on :3000.)
+   - Backend: http://localhost:5000
+   - Frontend: http://localhost:3000 (proxied to backend)
 
-Alternatively:
+**Alternatives:**
 - Backend only: `npm run start:backend`
 - Frontend only: `cd frontend && npm start`
 
-Open http://localhost:3000. Register/login, use category dropdowns, recurring toggles in modals, view projections/badges, set budgets, export CSV from header.
+Register/login at the UI, add expenses (with recurring toggle), set budgets, view charts/summary/projections, export CSV.
 
-## Docker Support (New Feature)
-**Selected feature implemented**: Environment-aware API configuration (REACT_APP_API_URL + proxy in package.json + constants update across Login/Register/App) + full Docker containerization.
+### Testing
+```bash
+npm test --prefix backend
+npm test --prefix frontend
+```
 
-This aligns with existing architecture (Node/Express/Mongo layered with context providers, constants centralization, Mongoose models). Updates were made to frontend (API_BASE usage, proxy, Dockerfile/nginx), configuration (docker-compose, .env fallback), database (Mongo service), and documentation.
+## Docker Support
+Fully containerized (selected feature). One-command startup with MongoDB, backend, and Nginx-served frontend.
 
-**Why it adds value**:
-- Accelerates onboarding (one command `docker compose up --build` spins up full stack with Mongo, no local DB install needed).
-- Ensures consistent environments across dev/prod/CI.
-- Creates a living reference for deployment patterns.
-- Supports the DME (Documentation Maintenance Engine) by including deployment in auto-report.
-- Maintains all existing coding standards (no stubs, consistent with constants, error handling, user-scoping).
+```bash
+docker compose up --build
+```
 
-### Docker Setup
-1. Ensure Docker + Docker Compose v2 installed.
-2. Run:
-   ```bash
-   docker compose up --build
-   ```
-3. Access:
-   - Frontend UI: http://localhost:3000
-   - API: http://localhost:5000/api (health at /health)
-   - Mongo: localhost:27017
-4. Stop: `docker compose down -v`
-5. Customize via `.env` or compose overrides.
+- Frontend: http://localhost:3000
+- API: http://localhost:5000 (includes `/health`)
+- MongoDB: localhost:27017 (exposed for tools)
+- Stop: `docker compose down -v`
+
+See `docker-compose.yml`, `backend/Dockerfile`, `frontend/Dockerfile`, and `frontend/nginx.conf`. Environment variables are passed through; `REACT_APP_API_URL` is respected.
+
+**Benefits**: Consistent environments, no local MongoDB install required, accelerated onboarding.
 
 ## Project Structure
-- `backend/`: server.js, models (User/Expense with hooks/enums/Budget), routes (with helpers/validation), middleware/auth.js, constants.js.
-- `frontend/`: Standard CRA + src/components (modals, lists, charts, summary, auth), context, hooks, styles, constants.
-- Root: package.json (with scripts), docs (README.md, architecture.md, api.md), `changes-report.docx`, Docker files.
+- `backend/`: `server.js`, models (with enums/pre-save hooks), routes (with helpers/validation), `middleware/auth.js`, `constants.js`.
+- `frontend/`: React components, hooks, contexts (Auth/Theme), services, styles, constants (env-aware).
+- Root: `package.json` (scripts including `generate:report`), Docker files, documentation.
 
+## Documentation
+- **README.md** (this file): Overview, setup (local + Docker), structure.
+- **api.md**: Full REST API spec with examples.
+- **architecture.md**: High-level design, flows, decisions, Mermaid diagram, deployment notes.
+- **changes-report.docx**: Auto-generated summary of *all* implemented changes (refactors, fixes, features, Docker, this documentation update).
+- Generated via `npm run generate:report` (uses `docx` library).
+
+**This documentation was updated as part of Task Tc072e068** to improve clarity, add a dedicated Setup Guide, include examples, Mermaid diagrams, cross-references, and regenerate the DOCX report. All prior functionality, refactors, and features are preserved.
+
+Last updated: 2026-08-02

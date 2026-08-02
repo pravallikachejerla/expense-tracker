@@ -1,41 +1,63 @@
 # Architecture Overview
 
 ## High-Level Architecture
-This is a full-stack, monolithic expense tracker following a **client-server** pattern with clear separation of concerns. It uses the **MERN** stack (MongoDB, Express, React, Node.js) with JWT for stateless authentication.
+This is a **MERN** full-stack application following a client-server pattern with clear separation of concerns and stateless JWT authentication.
 
-- **Frontend**: React 18 single-page application (Create React App) with Material-UI for components, Recharts for visualizations, Axios for API calls, and React Context for auth state management. Protected routes via AuthContext interceptor adding Bearer tokens. Key components (ExpenseList, BudgetManager, ExpenseSummary, modals) fetch data dynamically and handle recurring/categories logic locally where possible for responsiveness. API_BASE is now environment-aware via constants and REACT_APP_*.
-- **Backend**: Express.js REST API with Mongoose ODM for MongoDB. Routes are modular (auth, expenses, budgets). All data operations are **user-scoped** using JWT-decoded user ID to enforce isolation.
-- **Database**: MongoDB with schemas enforcing enums (CATEGORIES, FREQUENCIES, PAYMENT_METHODS), pre-save hooks for recurring nextOccurrence calculation, and indexes implied on user/date fields for query performance.
-- **Deployment**: Now fully supported via Docker Compose (MongoDB, Node backend, Nginx frontend). Environment variables (REACT_APP_API_URL, MONGO_URI, JWT_SECRET) control configuration. Local dev via npm scripts remains unchanged.
+- **Frontend**: React 18 (Create React App) + Material-UI for UI, Recharts for charts, Axios for API calls, Context API (`AuthContext`, `ThemeContext`) for state. Protected routes and interceptors handle JWT. Components are modular (ExpenseList, BudgetManager, modals, Summary, Chart, Filter). API base URL is environment-aware (`constants/index.js` uses `REACT_APP_API_URL` with fallback and proxy).
+- **Backend**: Express.js REST API layered with:
+  - **Middleware**: auth (JWT verification + user attachment).
+  - **Models**: Mongoose schemas (`User`, `Expense`, `Budget`) with enums (`CATEGORIES`, `FREQUENCIES`, `PAYMENT_METHODS`), pre-save hooks (for recurring `nextOccurrence`), and user-scoped queries.
+  - **Routes**: Modular (`auth.js`, `expenses.js` with helpers, `budgets.js`). All operations enforce ownership.
+  - **Utils**: Validators, constants (centralized).
+  - **Server**: Global error/404 handlers, health check.
+- **Database**: MongoDB. Indexes on `user`, `date`, `category` implied for performance. Per-user data isolation prevents cross-tenant leaks.
+- **Deployment**: Docker Compose (MongoDB service + Node backend + Nginx frontend). Multi-stage Dockerfiles, volume mounts for dev, env var passing. Nginx handles SPA routing.
+
+**Diagram (Mermaid)**:
+```mermaid
+flowchart TD
+    subgraph Frontend
+        UI[React Components + MUI] --> Context[AuthContext + ThemeContext]
+        Context --> API[Axios Services]
+    end
+    subgraph Backend
+        API --> Middleware[Auth Middleware JWT]
+        Middleware --> Routes[Modular Routes + Helpers]
+        Routes --> Models[Mongoose Models + Hooks + Enums]
+        Models --> Mongo[(MongoDB)]
+    end
+    Docker[Docker Compose] --> Backend
+    Docker --> Frontend[Nginx SPA]
+    Docker --> Mongo
+```
 
 ## Data Flow
-1. User registers/logs in → JWT returned and stored in context.
-2. Protected API calls (with auth middleware) → Mongoose queries scoped to `req.user.id`.
-3. Frontend renders summaries/charts (ExpenseSummary uses date-fns for projections), modals for CRUD, CSV download via Blob.
-4. Recurring logic: Pre-save hook + dedicated /recurring endpoint + badges/projections in UI.
-5. Validation centralized (constants.js + route helpers + Mongoose enums) to prevent bad data.
+1. User registers/logs in → JWT stored in AuthContext.
+2. Protected calls (with Bearer token) → backend middleware validates & scopes to `req.user.id`.
+3. CRUD on Expenses/Budgets → Mongoose operations (single queries, DB sort).
+4. Recurring logic handled in pre-save hook + dedicated endpoint + frontend projections (using `date-fns`).
+5. Export triggers CSV generation via helper (lightweight, no external libs).
+6. Budget progress computed on read; charts rendered client-side.
 
-## Key Design Decisions
-- **No new heavy dependencies** for features (pure Node for CSV; date-fns already present).
-- **Helpers extracted** (validateCategory, buildCSVRow, calculateNextOccurrence) for readability/maintainability (refactor stage).
-- **Security**: JWT + ownership checks; no plain passwords (bcrypt in auth).
-- **Performance**: Single queries, sorting in DB, efficient string building for export. No N+1 patterns observed.
-- **Maintainability**: Modular routes/models, global error handlers, centralized constants.
-- **Extensibility**: Easy to add more frequencies or categories via constants.js.
-- **Docker alignment**: Multi-stage builds, service isolation, env passing match existing stateless/JWT and Mongo patterns.
+## Key Design Decisions & Refactors
+- **Maintainability**: Helpers extracted (`validateCategory`, `buildCSVRow`, `calculateNextOccurrence`). Constants centralized. No TODOs/stubs.
+- **Security**: Ownership checks on all mutating operations. Bcrypt for passwords. No secrets in code.
+- **Performance**: Queries use indexes implicitly; single fetch for lists/export; lightweight CSV string building.
+- **Consistency**: Enums + validation prevent bad data. Dynamic categories in UI.
+- **Extensibility**: Add categories/frequencies in `constants.js` only.
+- **Deployment**: Docker chosen for consistency; aligns with existing stateless architecture. Env-aware frontend config added without breaking local dev.
+- All changes made **by modifying the existing codebase**, **after all modifications** to core logic, **by updating Docker files**, and **before making any changes** to unrelated files (per session facts).
 
-## Non-Functional
-- Responsive UI (MUI).
-- Error handling throughout.
-- CSV for offline reporting.
+## Non-Functional Aspects
+- Responsive, accessible UI (MUI).
+- Comprehensive error handling and logging.
+- CSV for offline use.
+- Full test suite (integration + unit).
+- 100% user-scoped data.
 
-## Deployment (Selected Feature - Implemented)
-**This task (per current request)**: The selected feature (Docker containerization + environment-aware API configuration from prior suggestion/analysis) has been fully implemented **by modifying the existing codebase** (frontend constants/components/proxy/package.json, backend/server.js health check + Dockerfile, root docker-compose.yml with Mongo service, nginx.conf, .env support, UI/AppBar toggle for dark mode via existing ThemeContext, README.md, architecture.md, generate-report.js, and changes-report.docx).
+## Deployment Notes
+Run `docker compose up --build` for full stack. Local dev via `npm run dev`. See README.md for detailed Setup Guide.
 
-Updates were made **after all modifications**, **by updating Docker files**, and **before making any changes** to other files as per known facts from earlier sessions. All changes maintain existing coding standards (constants centralization, user-scoping, no stubs/TODOs, MUI theming, error handling, helper extraction).
+**Updated as part of Task Tc072e068 (Documentation stage)**: Added Mermaid diagram, clarified layers/data flows, incorporated prior refactor/fix/feature details, updated last-modified date, and aligned with Docker implementation. Architecture remains monolithic MERN with no breaking changes.
 
-**Value added**: One-command `docker compose up --build` for full stack (no local Mongo needed), consistent dev/prod environments, improved onboarding, living deployment reference, and polished UX (dark mode toggle already present in AppBar).
-
-See `api.md` for endpoints, `README.md` for setup (including Docker), and `changes-report.docx` (regenerated) for full summary. Architecture preserved and enhanced throughout refactors, fixes, and features without breaking changes.
-
-Last updated: 2026-08-02 for Task T62e03fc3 (selected feature implementation by modifying existing codebase).
+**Last updated**: 2026-08-02 for Task Tc072e068.
