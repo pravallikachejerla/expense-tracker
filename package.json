@@ -1,15 +1,18 @@
 {
   "name": "expense-tracker",
   "version": "1.0.0",
-  "description": "Full-stack expense tracker with auth, budgets, standardized categories, charts, and CSV export",
+  "description": "Full-stack expense tracker with auth, budgets, standardized categories, charts, CSV export, recurring expenses, and comprehensive docs",
   "scripts": {
     "install:all": "cd backend && npm install && cd ../frontend && npm install",
     "dev": "concurrently \"npm run dev --prefix backend\" \"npm run start --prefix frontend\"",
     "build": "npm run build --prefix frontend",
     "test": "echo \"No root tests. Run in subdirs.\"",
-    "start:backend": "npm start --prefix backend"
+    "start:backend": "npm start --prefix backend",
+    "generate:report": "node generate-report.js"
   },
-  "dependencies": {},
+  "dependencies": {
+    "docx": "^8.5.0"
+  },
   "devDependencies": {
     "concurrently": "^8.2.2"
   },
