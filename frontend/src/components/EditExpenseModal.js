@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Select, MenuItem, FormControl, InputLabel, Alert } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Select, MenuItem, FormControl, InputLabel, Alert, Switch, FormControlLabel } from '@mui/material';
 import axios from 'axios';
 import '../styles/EditExpenseModal.css';
 
@@ -9,6 +9,8 @@ const EditExpenseModal = ({ expense, onClose, onExpenseUpdated }) => {
   const [description, setDescription] = useState(expense.description);
   const [date, setDate] = useState(expense.date.split('T')[0]);
   const [paymentMethod, setPaymentMethod] = useState(expense.paymentMethod || 'Other');
+  const [isRecurring, setIsRecurring] = useState(expense.isRecurring || false);
+  const [frequency, setFrequency] = useState(expense.frequency && expense.frequency !== 'none' ? expense.frequency : 'monthly');
   const [categories, setCategories] = useState([]);
   const [error, setError] = useState('');
 
@@ -27,12 +29,14 @@ const EditExpenseModal = ({ expense, onClose, onExpenseUpdated }) => {
     };
     fetchCategories();
 
-    // Reset form when expense changes
+    // Reset form when expense changes (support new recurring fields)
     setAmount(expense.amount);
     setCategory(expense.category);
     setDescription(expense.description);
     setDate(expense.date.split('T')[0]);
     setPaymentMethod(expense.paymentMethod || 'Other');
+    setIsRecurring(expense.isRecurring || false);
+    setFrequency(expense.frequency && expense.frequency !== 'none' ? expense.frequency : 'monthly');
     setError('');
   }, [expense]);
 
@@ -48,7 +52,9 @@ const EditExpenseModal = ({ expense, onClose, onExpenseUpdated }) => {
         category,
         description,
         date,
-        paymentMethod
+        paymentMethod,
+        isRecurring,
+        frequency: isRecurring ? frequency : 'none'
       });
       onExpenseUpdated(response.data);
       onClose();
@@ -118,6 +124,31 @@ const EditExpenseModal = ({ expense, onClose, onExpenseUpdated }) => {
               <MenuItem value="Other">Other</MenuItem>
             </Select>
           </FormControl>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={isRecurring}
+                onChange={(e) => setIsRecurring(e.target.checked)}
+                color="primary"
+              />
+            }
+            label="Recurring Expense"
+            sx={{ mt: 2, display: 'block' }}
+          />
+          {isRecurring && (
+            <FormControl fullWidth margin="normal">
+              <InputLabel>Frequency</InputLabel>
+              <Select
+                value={frequency}
+                onChange={(e) => setFrequency(e.target.value)}
+                label="Frequency"
+              >
+                <MenuItem value="weekly">Weekly</MenuItem>
+                <MenuItem value="monthly">Monthly</MenuItem>
+                <MenuItem value="yearly">Yearly</MenuItem>
+              </Select>
+            </FormControl>
+          )}
         </form>
       </DialogContent>
       <DialogActions>

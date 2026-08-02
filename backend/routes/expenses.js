@@ -18,12 +18,26 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
+// Get recurring expenses (new feature endpoint)
+router.get('/recurring', auth, async (req, res) => {
+  try {
+    const recurringExpenses = await Expense.find({ 
+      user: req.user.id, 
+      isRecurring: true,
+      nextOccurrence: { $gte: new Date() }
+    }).sort({ nextOccurrence: 1 });
+    res.json(recurringExpenses);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // Get categories (for frontend consistency)
 router.get('/categories', auth, (req, res) => {
   res.json(categories);
 });
 
-// Export expenses as CSV (user-scoped)
+// Export expenses as CSV (user-scoped, extended for recurring)
 router.get('/export', auth, async (req, res) => {
   try {
     const expenses = await Expense.find({ user: req.user.id }).sort({ date: -1 });
@@ -32,17 +46,20 @@ router.get('/export', auth, async (req, res) => {
       return res.status(404).json({ message: 'No expenses to export' });
     }
 
-    // Build CSV manually (no extra deps)
-    const headers = ['Date', 'Amount', 'Category', 'Description', 'Payment Method'];
+    // Build CSV manually (no extra deps), extended for recurring fields
+    const headers = ['Date', 'Amount', 'Category', 'Description', 'Payment Method', 'Recurring', 'Frequency', 'Next Occurrence'];
     let csv = headers.join(',') + '\n';
     
     expenses.forEach(exp => {
       const row = [
         new Date(exp.date).toISOString().split('T')[0],
         exp.amount,
-        `"${exp.category}"`,  // quote to handle commas if any
+        `"${exp.category}"`,
         `"${(exp.description || '').replace(/"/g, '""')}"`,
-        `"${exp.paymentMethod || 'Other'}"`
+        `"${exp.paymentMethod || 'Other'}"`,
+        exp.isRecurring ? 'Yes' : 'No',
+        `"${exp.frequency || 'none'}"`,
+        exp.nextOccurrence ? new Date(exp.nextOccurrence).toISOString().split('T')[0] : ''
       ];
       csv += row.join(',') + '\n';
     });
@@ -55,9 +72,9 @@ router.get('/export', auth, async (req, res) => {
   }
 });
 
-// Add new expense for the authenticated user
+// Add new expense for the authenticated user (extended for recurring)
 router.post('/', auth, async (req, res) => {
-  const { amount, category, description, date, paymentMethod } = req.body;
+  const { amount, category, description, date, paymentMethod, isRecurring, frequency, nextOccurrence } = req.body;
   
   if (!categories.includes(category)) {
     return res.status(400).json({ message: 'Invalid category. Must be one of the standard categories.' });
@@ -69,6 +86,9 @@ router.post('/', auth, async (req, res) => {
     description,
     date: date || Date.now(),
     paymentMethod: paymentMethod || 'Other',
+    isRecurring: isRecurring || false,
+    frequency: frequency || 'none',
+    nextOccurrence: nextOccurrence || null,
     user: req.user.id
   });
 
@@ -80,7 +100,7 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
-// Update expense (only if owned by user)
+// Update expense (only if owned by user, extended for recurring)
 router.patch('/:id', auth, async (req, res) => {
   try {
     const expense = await Expense.findOne({ _id: req.params.id, user: req.user.id });
@@ -97,6 +117,9 @@ router.patch('/:id', auth, async (req, res) => {
     if (req.body.description) expense.description = req.body.description;
     if (req.body.date) expense.date = req.body.date;
     if (req.body.paymentMethod) expense.paymentMethod = req.body.paymentMethod;
+    if (req.body.isRecurring !== undefined) expense.isRecurring = req.body.isRecurring;
+    if (req.body.frequency) expense.frequency = req.body.frequency;
+    if (req.body.nextOccurrence) expense.nextOccurrence = req.body.nextOccurrence;
 
     const updatedExpense = await expense.save();
     res.json(updatedExpense);

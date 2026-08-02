@@ -12,7 +12,9 @@ import {
   MenuItem, 
   FormControl, 
   InputLabel,
-  Alert
+  Alert,
+  Switch,
+  FormControlLabel
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 
@@ -40,6 +42,8 @@ const AddExpenseForm = ({ onExpenseAdded }) => {
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [paymentMethod, setPaymentMethod] = useState('Other');
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [frequency, setFrequency] = useState('monthly');
   const [categories, setCategories] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -74,7 +78,9 @@ const AddExpenseForm = ({ onExpenseAdded }) => {
         category,
         description,
         date,
-        paymentMethod
+        paymentMethod,
+        isRecurring,
+        frequency: isRecurring ? frequency : 'none'
       });
       onExpenseAdded(response.data);
       resetForm();
@@ -92,6 +98,8 @@ const AddExpenseForm = ({ onExpenseAdded }) => {
     setDescription('');
     setDate(new Date().toISOString().split('T')[0]);
     setPaymentMethod('Other');
+    setIsRecurring(false);
+    setFrequency('monthly');
     setError('');
   };
 
@@ -165,6 +173,34 @@ const AddExpenseForm = ({ onExpenseAdded }) => {
               </Select>
             </StyledFormControl>
           </Grid>
+          <Grid item xs={12} sm={6}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={isRecurring}
+                  onChange={(e) => setIsRecurring(e.target.checked)}
+                  color="primary"
+                />
+              }
+              label="Recurring Expense"
+            />
+          </Grid>
+          {isRecurring && (
+            <Grid item xs={12} sm={6}>
+              <StyledFormControl>
+                <InputLabel>Frequency</InputLabel>
+                <Select
+                  value={frequency}
+                  onChange={(e) => setFrequency(e.target.value)}
+                  label="Frequency"
+                >
+                  <MenuItem value="weekly">Weekly</MenuItem>
+                  <MenuItem value="monthly">Monthly</MenuItem>
+                  <MenuItem value="yearly">Yearly</MenuItem>
+                </Select>
+              </StyledFormControl>
+            </Grid>
+          )}
         </Grid>
         <SubmitButton
           type="submit"

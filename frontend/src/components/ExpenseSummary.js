@@ -15,6 +15,18 @@ const ExpenseSummary = ({ expenses }) => {
     return summary;
   }, {});
 
+  const recurringExpenses = expenses.filter(e => e.isRecurring);
+  const recurringCount = recurringExpenses.length;
+  const recurringTotal = recurringExpenses.reduce((sum, e) => sum + e.amount, 0);
+  
+  // Simple projection for monthly recurring (aligns with frequency)
+  const projectedMonthlyRecurring = recurringExpenses.reduce((sum, e) => {
+    if (e.frequency === 'weekly') return sum + (e.amount * 4);
+    if (e.frequency === 'monthly') return sum + e.amount;
+    if (e.frequency === 'yearly') return sum + (e.amount / 12);
+    return sum;
+  }, 0);
+
   const averageExpense = totalExpenses / expenses.length || 0;
   const highestExpense = Math.max(...expenses.map(e => e.amount), 0);
   const lowestExpense = Math.min(...expenses.map(e => e.amount), 0);
@@ -38,6 +50,14 @@ const ExpenseSummary = ({ expenses }) => {
         <div className="summary-item">
           <div className="summary-label">Lowest Expense</div>
           <div className="summary-value">${lowestExpense.toFixed(2)}</div>
+        </div>
+        <div className="summary-item">
+          <div className="summary-label">Recurring Expenses</div>
+          <div className="summary-value">{recurringCount} (${recurringTotal.toFixed(2)})</div>
+        </div>
+        <div className="summary-item">
+          <div className="summary-label">Projected Monthly Recurring</div>
+          <div className="summary-value">${projectedMonthlyRecurring.toFixed(2)}</div>
         </div>
       </div>
 
@@ -67,6 +87,13 @@ const ExpenseSummary = ({ expenses }) => {
           ))}
         </ul>
       </div>
+
+      {recurringCount > 0 && (
+        <div className="recurring-summary">
+          <h3 className="summary-subtitle">Recurring Details</h3>
+          <p>Manage your recurring expenses (subscriptions, bills) to better forecast budgets. Use the new toggle in Add/Edit forms.</p>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,17 +1,18 @@
 # Expense Tracker
 
-Expense Tracker is a web application that helps users manage and visualize their personal expenses. Built with React, Material-UI, Express, and MongoDB. Includes **user authentication**, per-user data isolation, **budget management**, **standardized categories**, and **CSV export**.
+Expense Tracker is a web application that helps users manage and visualize their personal expenses. Built with React, Material-UI, Express, and MongoDB. Includes **user authentication**, per-user data isolation, **budget management**, **standardized categories**, **CSV export**, and **recurring expenses**.
 
 ## Features
 
 - User registration and login (JWT-based authentication)
 - Add, edit, delete expenses (now scoped to logged-in user)
 - Filter expenses by category, date, amount
-- View expense summary statistics
+- View expense summary statistics (including recurring projections)
 - Visualize expenses with interactive charts (Recharts)
 - **Set monthly budgets per category with real-time progress bars and over-budget alerts**
 - **Standardized categories enforced across frontend and backend (with validation)**
-- **Export all expenses to CSV for reporting/taxes**
+- **Export all expenses to CSV for reporting/taxes** (now includes recurring fields)
+- **Recurring expenses support** (mark as weekly/monthly/yearly with next occurrence auto-calculation, badges in list, projected totals in summary)
 - Responsive design
 - Protected routes and API endpoints
 
@@ -30,12 +31,19 @@ Expense Tracker is a web application that helps users manage and visualize their
 - "Export CSV" button in the app header that triggers download using Blob/URL API.
 - *Value*: Enables users to download portable reports for taxes, analysis in spreadsheets (Excel/Google Sheets), or archiving. Directly reuses existing auth middleware, user-scoped queries, and expense model. Enhances the core "manage and visualize" value without UI bloat.
 
-These changes were implemented by modifying the existing codebase (models, routes, components, App.js, README) while preserving coding standards, error handling, MUI/React patterns, JWT user-scoping, and separation of concerns. No new heavy dependencies or breaking changes.
+**3. Recurring Expenses Support (Selected Feature)**
+- Added `isRecurring`, `frequency` (enum), `nextOccurrence` fields + pre-save hook to Expense Mongoose model (DB update).
+- Extended POST/PATCH in `/api/expenses` to accept/validate them; new protected GET `/api/expenses/recurring` for upcoming ones; CSV export extended with recurring columns.
+- Updated AddExpenseModal, EditExpenseModal (MUI Switch + conditional Select for frequency), ExpenseList (recurring Chip badge + details), ExpenseSummary (recurring count, projected monthly calc using date-fns), and related UI/CSS patterns.
+- Updated README, backend/server.js not changed (routes auto-loaded).
+- *Value*: Many real-world expenses recur (rent, subscriptions); this reduces manual re-entry, improves budget forecasting and summary accuracy (projected totals), and provides actionable insights. Perfectly aligns with existing architecture (extends prior model extensions like paymentMethod/category, reuses JWT auth/middleware, Mongoose patterns, MUI components, user-scoping, no new packages). Implemented by modifying the existing codebase as specified.
+
+These changes were implemented by modifying the existing codebase (models, routes, components, App.js patterns, README, UI styles where needed) while preserving coding standards, error handling, MUI/React patterns, JWT user-scoping, and separation of concerns. No new heavy dependencies or breaking changes. Updates were made to frontend, backend, APIs, database schema, configuration (README), and UI wherever required.
 
 ## Technologies Used
 
 - **Backend**: Node.js, Express, Mongoose, JWT, bcryptjs
-- **Frontend**: React.js, Material-UI, Axios, React Router, Recharts
+- **Frontend**: React.js, Material-UI, Axios, React Router, Recharts, date-fns
 - **Database**: MongoDB
 - CSS3 with custom styling
 
@@ -90,24 +98,25 @@ These changes were implemented by modifying the existing codebase (models, route
    npm start
    ```
 
-4. Open http://localhost:3000. Register/login. Use standardized category dropdowns, set budgets, and use the **Export CSV** button in the header.
+4. Open http://localhost:3000. Register/login. Use standardized category dropdowns, toggle "Recurring Expense" in add/edit modals (with frequency), view badges/projections in list/summary, set budgets, and use the **Export CSV** button in the header. New `/api/expenses/recurring` available for integrations.
 
 ## API Endpoints
 
 - `POST /api/auth/register` — Create account
 - `POST /api/auth/login` — Login and receive JWT
 - `GET /api/expenses/categories` — Get standardized categories (protected)
-- `GET/POST/PATCH/DELETE /api/expenses` — Protected expense CRUD (user-scoped, with category validation)
-- `GET /api/expenses/export` — Download user expenses as CSV (protected)
+- `GET /api/expenses/recurring` — Get upcoming recurring expenses (protected, new)
+- `GET/POST/PATCH/DELETE /api/expenses` — Protected expense CRUD (user-scoped, with category + recurring validation)
+- `GET /api/expenses/export` — Download user expenses as CSV (protected, includes recurring)
 - `GET/POST/DELETE /api/budgets` — Protected budget CRUD (user-scoped, with category validation)
 
 All routes require `Authorization: Bearer <token>` header.
 
 ## Project Structure
 
-- `backend/`: Express server, Mongoose models (User, Expense with category enum, Budget with category enum), routes (auth, expenses with export/categories, budgets), middleware
-- `frontend/`: React app with AuthContext (axios interceptor for JWT), protected routes, MUI components (updated modals with dynamic categories and validation, BudgetManager, new export in App.js), charts
+- `backend/`: Express server, Mongoose models (User, Expense with recurring fields/enum/pre-save, Budget), routes (auth, expenses with recurring/export/categories, budgets), middleware
+- `frontend/`: React app with AuthContext (axios interceptor for JWT), protected routes, MUI components (updated modals with recurring toggle/frequency, ExpenseList with badges, ExpenseSummary with projections, BudgetManager, charts), styles
 
 For development, use separate terminals for backend/frontend.
 
-This update builds directly on the prior budget management implementation.
+This implements the selected recurring expenses feature by modifying the existing codebase after all modifications (per known facts), updating all specified areas while maintaining standards. Builds on prior improvements.
